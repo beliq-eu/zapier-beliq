@@ -1,0 +1,54 @@
+{
+  "name": "zapier-beliq",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zapier integration for beliq - generate, validate, parse, and convert EU-compliant e-invoices (XRechnung, ZUGFeRD, Factur-X, Peppol BIS).",
+  "keywords": [
+    "beliq",
+    "e-invoice",
+    "einvoice",
+    "xrechnung",
+    "zugferd",
+    "factur-x",
+    "peppol",
+    "en16931",
+    "compliance",
+    "zapier"
+  ],
+  "license": "MIT",
+  "homepage": "https://beliq.eu",
+  "author": {
+    "name": "beliq",
+    "email": "hello@beliq.eu"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beliq-eu/zapier-beliq.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beliq-eu/zapier-beliq/issues"
+  },
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "_zapier-build": "npm run build",
+    "test": "vitest run",
+    "test:integration": "vitest run test/creates.test.ts",
+    "validate": "zapier-platform validate",
+    "push": "zapier-platform push",
+    "scrub:check": "grep -rn $'\\u2014' src README.md examples && echo 'em-dash found' && exit 1 || echo 'no em-dash'"
+  },
+  "dependencies": {
+    "@beliq/sdk": "^0.1.1",
+    "zapier-platform-core": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.8",
+    "zapier-platform-cli": "^19.0.0"
+  }
+}
