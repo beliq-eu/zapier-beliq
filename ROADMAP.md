@@ -81,7 +81,7 @@ provisional formats stay out of the UI.
 - `npm i -g zapier-platform-cli`; `zapier-platform login` (beliq dev account).
 - `zapier-platform register "beliq"` (writes `.zapierapprc`).
 - Branding in the dashboard: upload `assets/beliq-logo-1024.png` (1024x1024) +
-  the beliq brand color + set the dashboard description to start "beliq is a"
+  brand color `#fe6019` + set the dashboard description to start "beliq is a"
   (never mention Zapier, reviewer rule M002).
 - `zapier-platform push`; connect a beliq account (confirm the auth test passes,
   and fails on a wrong key).
@@ -124,4 +124,3 @@ provisional formats stay out of the UI.
   conformance check runs at Pass 2.
 - Whether to add conditional field display for documentFile vs documentText, vs
   the current show-both + perform-side resolution. Current approach is robust.
-- The final beliq brand color and the 1024x1024 logo for the branding step.
