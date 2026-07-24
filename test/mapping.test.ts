@@ -200,6 +200,32 @@ describe('generate_invoice mapping', () => {
     expect(result.pdfKind).toBe('facturx');
     expect(result.sizeBytes).toBe(pdfBytes.length);
   });
+
+  it('resolves the NLCIUS target to peppol-bis + the netherlands-nlcius profile', async () => {
+    const recorder: RecordedRequest[] = [];
+    const fetchImpl = recordingFetch(
+      { body: '<Invoice/>', headers: { 'content-type': 'application/xml' } },
+      recorder,
+    );
+    const z = makeZ([]);
+    const bundle = {
+      authData: AUTH,
+      inputData: {
+        standard: 'nlcius',
+        // A user-set profile/pdf output is overridden by the preset.
+        profile: 'en16931',
+        output: 'pdf',
+        invoice: JSON.stringify({ number: 'NL-1' }),
+      },
+    };
+
+    await withFetch(fetchImpl, () => (generateInvoice.operation.perform as any)(z, bundle));
+
+    const body = JSON.parse(recorder[0].body as string);
+    expect(body.standard).toBe('peppol-bis');
+    expect(body.profile).toBe('netherlands-nlcius');
+    expect(body.output).toBe('xml');
+  });
 });
 
 describe('validate_invoice mapping', () => {

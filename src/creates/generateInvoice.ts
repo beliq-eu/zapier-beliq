@@ -1,8 +1,13 @@
 import type { Bundle, PlainInputField, ZObject } from 'zapier-platform-core';
-import type { GenerateInput, Invoice, Standard, GenerateProfile } from '@beliq/sdk';
+import type { GenerateInput, Invoice, GenerateProfile } from '@beliq/sdk';
 import { asJsonObject, createClient, mapError, type BeliqAuthData } from '../lib/client';
 import { stashDocument } from '../lib/io';
-import { GENERATE_STANDARD_CHOICES, OUTPUT_CHOICES, PROFILE_CHOICES } from '../lib/options';
+import {
+  GENERATE_STANDARD_CHOICES,
+  OUTPUT_CHOICES,
+  PROFILE_CHOICES,
+  resolveGenerateTarget,
+} from '../lib/options';
 import { generateXmlSample } from '../lib/samples';
 
 // EN 16931-valid default: dueDate (rule BR-CO-25), seller taxId for VAT category
@@ -105,13 +110,17 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     );
   }
 
-  const output = (typeof input.output === 'string' ? input.output : 'xml') as 'xml' | 'pdf';
+  const target = resolveGenerateTarget(typeof input.standard === 'string' ? input.standard : 'xrechnung');
+  const output = (target.output ??
+    (typeof input.output === 'string' ? input.output : 'xml')) as 'xml' | 'pdf';
   const generateInput: GenerateInput = {
-    standard: (typeof input.standard === 'string' ? input.standard : 'xrechnung') as Standard,
+    standard: target.standard,
     invoice: invoice as Invoice,
     output,
   };
-  if (typeof input.profile === 'string' && input.profile !== '') {
+  if (target.profile) {
+    generateInput.profile = target.profile as GenerateProfile;
+  } else if (typeof input.profile === 'string' && input.profile !== '') {
     generateInput.profile = input.profile as GenerateProfile;
   }
   if (typeof input.pdfTemplateId === 'string' && input.pdfTemplateId !== '') {
