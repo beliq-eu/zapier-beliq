@@ -1,9 +1,11 @@
 import {
   LIVE_CONVERT_TARGET_FORMATS,
+  LIVE_GENERATE_PRESETS,
   LIVE_GENERATE_STANDARDS,
   LIVE_PARSE_FORMATS,
   LIVE_PROFILES,
   LIVE_VALIDATE_FORMATS,
+  type Standard,
 } from '@beliq/sdk';
 
 // Dropdown value-spaces are sourced straight from the SDK's LIVE_* lists, which
@@ -36,7 +38,29 @@ export function toChoices(values: readonly string[]): Record<string, string> {
   return choices;
 }
 
-export const GENERATE_STANDARD_CHOICES = toChoices(LIVE_GENERATE_STANDARDS);
+// Curated profile presets (e.g. NLCIUS = Peppol BIS + the netherlands-nlcius
+// profile) are offered as extra generate targets beside the plain standards; a
+// profile preset resolves to its standard + profile at call time.
+const PROFILE_PRESETS = LIVE_GENERATE_PRESETS.filter((p) => p.profile);
+
+export const GENERATE_STANDARD_CHOICES: Record<string, string> = {
+  ...toChoices(LIVE_GENERATE_STANDARDS),
+  ...Object.fromEntries(PROFILE_PRESETS.map((p) => [p.id, p.label])),
+};
+
+export interface GenerateTarget {
+  standard: Standard;
+  profile?: string;
+  output?: 'xml' | 'pdf';
+}
+
+/** Resolve a Standard-field value to the generate standard (and profile) it means. */
+export function resolveGenerateTarget(value: string): GenerateTarget {
+  const preset = PROFILE_PRESETS.find((p) => p.id === value);
+  if (preset) return { standard: preset.standard, profile: preset.profile, output: preset.output };
+  return { standard: value as Standard };
+}
+
 export const PROFILE_CHOICES = toChoices(LIVE_PROFILES);
 export const VALIDATE_FORMAT_CHOICES = toChoices(LIVE_VALIDATE_FORMATS);
 export const PARSE_FORMAT_CHOICES = toChoices(LIVE_PARSE_FORMATS);
