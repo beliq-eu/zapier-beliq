@@ -176,7 +176,7 @@ describe('generate_invoice mapping', () => {
         profile: 'en16931',
         output: 'pdf',
         invoice: JSON.stringify({ number: 'INV-2' }),
-        pdfTemplateId: 'tmpl_abc',
+        pdfTemplateId: 'k3d-9mp',
         verify: 'true',
       },
     };
@@ -189,7 +189,9 @@ describe('generate_invoice mapping', () => {
     const body = JSON.parse(req.body as string);
     expect(body.standard).toBe('facturx');
     expect(body.output).toBe('pdf');
-    expect(body.pdfTemplateId).toBe('tmpl_abc');
+    expect(body.pdfTemplateId).toBe('k3d-9mp');
+    // The stored template is the visual, so the built-in one is not also sent.
+    expect(body.template).toBeUndefined();
     expect(body.verify).toBe(true);
 
     expect(stashes).toHaveLength(1);
@@ -226,6 +228,60 @@ describe('generate_invoice mapping', () => {
     expect(body.standard).toBe('peppol-bis');
     expect(body.profile).toBe('netherlands-nlcius');
     expect(body.output).toBe('xml');
+  });
+
+  // XRechnung and Peppol BIS have no hybrid PDF. The API refuses PDF output for
+  // them unless the request names a visual to render, so without `template` the
+  // Output=PDF choice is a 400 nothing the user can type avoids.
+  it('asks for the built-in visual when PDF is chosen and no stored template is given', async () => {
+    const recorder: RecordedRequest[] = [];
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
+    const fetchImpl = recordingFetch(
+      { body: pdfBytes, headers: { 'content-type': 'application/pdf' } },
+      recorder,
+    );
+    const bundle = {
+      authData: AUTH,
+      inputData: {
+        standard: 'xrechnung',
+        output: 'pdf',
+        invoice: JSON.stringify({ number: 'INV-3' }),
+      },
+    };
+
+    await withFetch(fetchImpl, () =>
+      (generateInvoice.operation.perform as any)(makeZ([]), bundle),
+    );
+
+    const body = JSON.parse(recorder[0].body as string);
+    expect(body.output).toBe('pdf');
+    expect(body.template).toBe('standard');
+  });
+
+  // Factur-X and ZUGFeRD render their page either way, so the same field is
+  // sent for them too rather than being gated on a standard list the connector
+  // would then have to keep in step with the API.
+  it('asks for the built-in visual on the hybrid standards as well', async () => {
+    const recorder: RecordedRequest[] = [];
+    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
+    const fetchImpl = recordingFetch(
+      { body: pdfBytes, headers: { 'content-type': 'application/pdf' } },
+      recorder,
+    );
+    const bundle = {
+      authData: AUTH,
+      inputData: {
+        standard: 'zugferd',
+        output: 'pdf',
+        invoice: JSON.stringify({ number: 'INV-4' }),
+      },
+    };
+
+    await withFetch(fetchImpl, () =>
+      (generateInvoice.operation.perform as any)(makeZ([]), bundle),
+    );
+
+    expect(JSON.parse(recorder[0].body as string).template).toBe('standard');
   });
 });
 
