@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.2
+
+- The prefilled invoice's Peppol ids are valid GLNs. Both carried a wrong GS1
+  check digit, so a first run on Peppol BIS was four fatal
+  `PEPPOL-COMMON-R040`s. XRechnung never showed it: its builder addresses the
+  party by email and ignores the Peppol id entirely.
+
 ## 1.2.1
 
 - Output=PDF works on XRechnung and Peppol BIS. Those two have no hybrid PDF,
