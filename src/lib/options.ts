@@ -5,6 +5,7 @@ import {
   LIVE_PARSE_FORMATS,
   LIVE_PROFILES,
   LIVE_VALIDATE_FORMATS,
+  isProfileAllowedForStandard,
   type Standard,
 } from '@beliq/sdk';
 
@@ -61,7 +62,20 @@ export function resolveGenerateTarget(value: string): GenerateTarget {
   return { standard: value as Standard };
 }
 
+// Zapier `choices` are static per field: they cannot narrow to another field's
+// value without a dynamic dropdown, and there is no list-profiles endpoint to
+// back one. So the field offers the Factur-X family list and `usableProfile`
+// drops a value the chosen standard does not accept, rather than sending a pair
+// the engine answers with 422 PROFILE_STANDARD_MISMATCH.
 export const PROFILE_CHOICES = toChoices(LIVE_PROFILES);
+
+/** Drop a profile the resolved standard does not accept. */
+export function usableProfile(value: string, profile: string | undefined): string | undefined {
+  if (!profile) return undefined;
+  return isProfileAllowedForStandard(resolveGenerateTarget(value).standard, profile)
+    ? profile
+    : undefined;
+}
 export const VALIDATE_FORMAT_CHOICES = toChoices(LIVE_VALIDATE_FORMATS);
 export const PARSE_FORMAT_CHOICES = toChoices(LIVE_PARSE_FORMATS);
 export const CONVERT_TARGET_CHOICES = toChoices(LIVE_CONVERT_TARGET_FORMATS);

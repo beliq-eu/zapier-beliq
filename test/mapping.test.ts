@@ -145,11 +145,12 @@ describe('generate_invoice mapping', () => {
     expect(req.headers['X-API-Key']).toBe('test-key-123');
     expect(req.headers['Content-Type']).toBe('application/json');
     const body = JSON.parse(req.body as string);
+    // The bundle carries the field's own default profile, and XRechnung pins its
+    // own, so the create drops it rather than sending a 422.
     expect(body).toEqual({
       standard: 'xrechnung',
       output: 'xml',
       invoice: { number: 'INV-1' },
-      profile: 'en16931',
     });
 
     expect(result.xml).toBe('<Invoice>ok</Invoice>');
@@ -357,5 +358,58 @@ describe('convert_invoice mapping', () => {
     expect(stashes[0].contentType).toBe('application/pdf');
     expect(result.filename).toBe('invoice.pdf');
     expect(result.lostElementsCount).toBe(0);
+  });
+});
+
+describe('generate_invoice profile gating', () => {
+  // `choices` are static per field, so the Profile dropdown offers the Factur-X
+  // family for every standard. The create is the only place that can refuse a
+  // pair the engine answers with 422 PROFILE_STANDARD_MISMATCH.
+  async function bodyFor(inputData: Record<string, unknown>) {
+    const recorder: RecordedRequest[] = [];
+    const fetchXml = recordingFetch(
+      { status: 200, body: '<Invoice/>', headers: { 'content-type': 'application/xml' } },
+      recorder,
+    );
+    const z = makeZ([]);
+    await withFetch(fetchXml, () =>
+      (generateInvoice.operation.perform as any)(z, {
+        authData: AUTH,
+        inputData: { output: 'xml', invoice: JSON.stringify({ number: 'INV-1' }), ...inputData },
+      }),
+    );
+    return JSON.parse(recorder[0].body as string);
+  }
+
+  it('drops the default profile on Peppol BIS, which pins its own', async () => {
+    expect(await bodyFor({ standard: 'peppol-bis', profile: 'en16931' })).not.toHaveProperty(
+      'profile',
+    );
+  });
+
+  it('drops the France CTC overlay profile on ZUGFeRD', async () => {
+    expect(await bodyFor({ standard: 'zugferd', profile: 'extended-ctc-fr' })).not.toHaveProperty(
+      'profile',
+    );
+  });
+
+  it('keeps a profile the standard does accept', async () => {
+    expect(await bodyFor({ standard: 'facturx', profile: 'extended-ctc-fr' })).toMatchObject({
+      profile: 'extended-ctc-fr',
+    });
+  });
+
+  it('lets the NLCIUS preset pin the profile Peppol BIS needs', async () => {
+    expect(await bodyFor({ standard: 'nlcius', profile: 'en16931' })).toMatchObject({
+      standard: 'peppol-bis',
+      profile: 'netherlands-nlcius',
+    });
+  });
+
+  it('defaults Verify on, so an invalid document fails instead of returning', () => {
+    const verify = generateInvoice.operation.inputFields.find(
+      (f) => (f as { key?: string }).key === 'verify',
+    ) as { default?: string };
+    expect(verify.default).toBe('true');
   });
 });

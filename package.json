@@ -1,6 +1,6 @@
 {
   "name": "zapier-beliq",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Zapier integration for beliq - generate, validate, parse, and convert EU-compliant e-invoices (XRechnung, ZUGFeRD, Factur-X, Peppol BIS).",
   "keywords": [
@@ -42,7 +42,7 @@
     "scrub:check": "grep -rn $'\\u2014' src README.md examples && echo 'em-dash found' && exit 1 || echo 'no em-dash'"
   },
   "dependencies": {
-    "@beliq/sdk": "^0.2.0",
+    "@beliq/sdk": "^0.3.0",
     "zapier-platform-core": "19.0.0"
   },
   "overrides": {
