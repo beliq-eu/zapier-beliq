@@ -359,3 +359,11 @@ describe('convert_invoice mapping', () => {
     expect(result.lostElementsCount).toBe(0);
   });
 });
+
+// TEMPORARY: proves this repo's new CI turns red on a failing test. Reverted in
+// the next commit; see the PR conversation.
+describe('CI falsification', () => {
+  it('fails on purpose', () => {
+    expect('ci-must-go-red').toBe('ci-must-stay-green');
+  });
+});
