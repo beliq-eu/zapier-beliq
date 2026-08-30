@@ -7,6 +7,7 @@ import {
   OUTPUT_CHOICES,
   PROFILE_CHOICES,
   resolveGenerateTarget,
+  usableProfile,
 } from '../lib/options';
 import { generateXmlSample } from '../lib/samples';
 
@@ -57,7 +58,8 @@ const inputFields: PlainInputField[] = [
     type: 'string',
     default: 'en16931',
     choices: PROFILE_CHOICES,
-    helpText: 'The data granularity profile to build against.',
+    helpText:
+      'Data granularity, for Factur-X and ZUGFeRD. XRechnung and Peppol BIS pin their own profile and ignore this.',
   },
   {
     key: 'output',
@@ -87,8 +89,9 @@ const inputFields: PlainInputField[] = [
     key: 'verify',
     label: 'Verify',
     type: 'boolean',
-    default: 'false',
-    helpText: 'Validate the generated document before returning (returns an error if it fails).',
+    default: 'true',
+    helpText:
+      'Validate the generated document before returning it, and fail rather than return an invalid one.',
   },
 ];
 
@@ -118,11 +121,14 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     invoice: invoice as Invoice,
     output,
   };
-  if (target.profile) {
-    generateInput.profile = target.profile as GenerateProfile;
-  } else if (typeof input.profile === 'string' && input.profile !== '') {
-    generateInput.profile = input.profile as GenerateProfile;
-  }
+  // A profile the standard does not accept is a 422, and the field's choices
+  // cannot narrow to the chosen standard, so the gate is here.
+  const profile =
+    target.profile ??
+    (typeof input.standard === 'string'
+      ? usableProfile(input.standard, typeof input.profile === 'string' ? input.profile : undefined)
+      : undefined);
+  if (profile) generateInput.profile = profile as GenerateProfile;
   if (typeof input.pdfTemplateId === 'string' && input.pdfTemplateId !== '') {
     generateInput.pdfTemplateId = input.pdfTemplateId;
   }
