@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+- Output=PDF works on XRechnung and Peppol BIS. Those two have no hybrid PDF,
+  and the API refuses PDF output for them unless the request asks for a visual
+  to render, so the choice used to be a 400 nothing the user could type avoided.
+  The returned PDF is a visualization of the invoice with no XML inside it; for
+  those two standards the legal document is still the XML.
+
 ## 1.2.0
 
 - Profile is gated per standard. XRechnung and Peppol BIS pin their own, so a

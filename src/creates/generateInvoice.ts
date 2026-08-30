@@ -87,7 +87,8 @@ const inputFields: PlainInputField[] = [
     type: 'string',
     default: 'xml',
     choices: OUTPUT_CHOICES,
-    helpText: 'XML returns the invoice as text. PDF returns a hybrid PDF/A-3 with the XML embedded.',
+    helpText:
+      'XML returns the invoice as text. PDF returns a hybrid PDF/A-3 with the XML embedded for Factur-X and ZUGFeRD. XRechnung and Peppol BIS have no hybrid form, so PDF returns a visualization of the invoice with no XML inside it; the legal document for those two is the XML.',
   },
   {
     key: 'invoice',
@@ -151,6 +152,11 @@ const perform = async (z: ZObject, bundle: Bundle) => {
   if (profile) generateInput.profile = profile as GenerateProfile;
   if (typeof input.pdfTemplateId === 'string' && input.pdfTemplateId !== '') {
     generateInput.pdfTemplateId = input.pdfTemplateId;
+  } else if (output === 'pdf') {
+    // XRechnung and Peppol BIS have no hybrid PDF, and the API refuses PDF for
+    // them unless the request names a visual to render. Factur-X and ZUGFeRD
+    // render theirs either way, so this is inert for them.
+    generateInput.template = 'standard';
   }
   const verify = bool(input.verify);
   if (verify !== undefined) generateInput.verify = verify;
