@@ -1,5 +1,7 @@
 # Zapier beliq connector - implementation roadmap
 
+`status: live, next: pass 2, zapier-platform register and push, then connect an account and run each create end to end`
+
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
 `~/Projects/beliq/tools/zapier-beliq/`.
@@ -43,8 +45,13 @@ beliq API surface used here: `GET /v1/me`, `POST /v1/generate`,
 provisional formats stay out of the UI.
 
 - **Generate Invoice**: `standard`, `profile`, `output` (xml/pdf), `invoice`
-  (JSON), optional `pdfTemplateId`, optional `verify`. XML output returns the
-  XML text + schematron/envelope metadata; PDF output stashes a File.
+  (JSON), optional `pdfTemplateId`, `verify` on by default. XML output returns
+  the XML text + schematron/envelope metadata; PDF output stashes a File.
+  `profile` applies to the ZUGFeRD / Factur-X family only: XRechnung and Peppol
+  BIS pin their own, so the create drops a profile the resolved standard
+  rejects rather than sending a guaranteed 422. For those two standards a PDF is
+  a visualization with no XML inside it, and the request asks for a rendered
+  visual, without which the API refuses PDF output.
 - **Validate / Parse / Convert**: a document from `documentText` (pasted XML) or
   `documentFile` (a hydrated file pointer, fetched via `z.request`). Validate and
   Parse return the result JSON. Convert stashes the converted File and passes
@@ -55,6 +62,16 @@ provisional formats stay out of the UI.
 ## 2. Passes
 
 ### Pass 1 - Local integration code + tests (done)
+
+Four releases have shipped on top of the original build, all of them local code
+still inside this pass, and `CHANGELOG.md` is their record: 1.1.0 the NLCIUS
+generate target and `@beliq/sdk` 0.2.0; 1.2.0 the per-standard profile gating and
+`verify` on by default; 1.2.1 PDF output on XRechnung and Peppol BIS; 1.2.2 valid
+GS1 check digits on the prefilled invoice's Peppol ids. The package is `1.2.2`
+and stays unpublished to npm, since Zapier distributes through its own platform.
+
+The original build:
+
 - package.json (MIT, name `zapier-beliq`, exact `zapier-platform-core` pin,
   `@beliq/sdk` dependency, `scrub:check`), tsconfig, vitest.config, .gitignore,
   renovate, LICENSE.
@@ -64,18 +81,22 @@ provisional formats stay out of the UI.
 - src/authentication.ts (apiKey + /v1/me test), src/index.ts (App, no auth
   middleware since the SDK injects auth).
 - src/creates/{generateInvoice,validateInvoice,parseInvoice,convertInvoice}.ts.
-- test/mapping.test.ts (unit, recording fetch injected into the SDK) +
-  test/creates.test.ts (live smoke, gated on BELIQ_API_KEY).
+- test/mapping.test.ts + test/sample-invoice.test.ts (unit, recording fetch
+  injected into the SDK; 17 pass offline) + test/creates.test.ts (live smoke,
+  gated on BELIQ_API_KEY, 5 tests).
 - README, this ROADMAP, CHANGELOG.
 - Verified: `npm run build` clean, `npm test` green, `npm run scrub:check` clean,
-  `npm run validate` structurally sound (0 errors, 0 failed, 0 publishing
-  warnings). Two general (non-blocking) validate warnings remain by design:
+  `npm run validate` structurally sound (25 checks passed, 0 errors, 0 failed, 0
+  publishing warnings). Three general (non-blocking) warnings, two by design:
   - D004 on `generate_invoice.pdfTemplateId`: it looks like an ID field but has
     no dynamic dropdown. beliq exposes no list-templates endpoint, so a dropdown
     is impossible; reach a template by pasting its ID.
   - D003 connectionLabel: no label is set on purpose (reviewer rule 5.6 forbids
     the app name in the label, and beliq has no other stable per-account value
     worth showing). Zapier auto-numbers connections.
+  - D027 asks for `zapier-platform-core` 19.1.0 against the pinned 19.0.0. This
+    one is real work rather than a design choice, and the pin has to move by
+    hand because validate requires an exact version.
 
 ### Pass 2 - Register + push + in-product verification (operator, needs Zapier login)
 - `npm i -g zapier-platform-cli`; `zapier-platform login` (beliq dev account).
