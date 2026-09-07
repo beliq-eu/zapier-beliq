@@ -1,40 +1,19 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { Beliq } from '@beliq/sdk';
+import generateInvoice from '../src/creates/generateInvoice';
 
 // Live smoke test against the real beliq API. Skipped unless BELIQ_API_KEY is
-// set (so it never runs in CI). It drives the SDK directly the same way the
-// creates do, which validates the whole field-mapping + wire chain against the
-// live contract. The z.stashFile delivery path runs only on Zapier, so it is
-// verified in-product during the push/connect step, not here.
+// set. It drives the SDK directly the same way the creates do, which validates
+// the whole field-mapping + wire chain against the live contract. The
+// z.stashFile delivery path runs only on Zapier, so it is verified in-product
+// during the push/connect step, not here.
 const API_KEY = process.env.BELIQ_API_KEY;
 
-const sampleInvoice = {
-  number: 'INV-SMOKE-1',
-  issueDate: '2026-06-04',
-  dueDate: '2026-07-04',
-  currencyCode: 'EUR',
-  seller: {
-    name: 'Acme GmbH',
-    address: { line1: 'Hauptstr. 1', city: 'Berlin', postalCode: '10115', countryCode: 'DE' },
-    taxId: 'DE123456789',
-    // BT-34 / BT-49. XRechnung rejects a party it cannot address (400), and
-    // `taxId` is not one of the rungs it reads — only `vatId` is.
-    email: 'billing@acme.example',
-  },
-  buyer: {
-    name: 'Buyer SARL',
-    address: { line1: 'Rue 2', city: 'Paris', postalCode: '75001', countryCode: 'FR' },
-    email: 'ap@buyer.example',
-  },
-  lines: [
-    { description: 'Widget', quantity: 2, unitPrice: 10, lineTotal: 20, vatRate: 19, vatCategoryCode: 'S' },
-  ],
-  taxSummary: [{ categoryCode: 'S', rate: 19, taxableAmount: 20, taxAmount: 3.8 }],
-  paymentTerms: 'Net 30 days',
-  totalNetAmount: 20,
-  totalTaxAmount: 3.8,
-  totalGrossAmount: 23.8,
-};
+// The prefilled Invoice Data is what a user's first run sends, so the smoke
+// drives that exact object rather than a second copy that can drift from it.
+const sampleInvoice = JSON.parse(
+  ((generateInvoice.operation.inputFields as any[]).find((f) => f.key === 'invoice')!.default) as string,
+);
 
 describe.skipIf(!API_KEY)('beliq live API', () => {
   let client: Beliq;
@@ -50,19 +29,17 @@ describe.skipIf(!API_KEY)('beliq live API', () => {
   it('generate (XRechnung / XML) returns valid XML', async () => {
     const result = await client.generate({
       standard: 'xrechnung',
-      profile: 'en16931',
       output: 'xml',
       invoice: sampleInvoice,
     });
     expect(result.contentType).toContain('xml');
     expect(result.xml).toBeTruthy();
-    expect(result.xml).toContain('INV-SMOKE-1');
+    expect(result.xml).toContain(sampleInvoice.number);
   });
 
   it('validate accepts a generated document', async () => {
     const generated = await client.generate({
       standard: 'xrechnung',
-      profile: 'en16931',
       output: 'xml',
       invoice: sampleInvoice,
     });
@@ -74,7 +51,6 @@ describe.skipIf(!API_KEY)('beliq live API', () => {
   it('parse extracts structured fields', async () => {
     const generated = await client.generate({
       standard: 'xrechnung',
-      profile: 'en16931',
       output: 'xml',
       invoice: sampleInvoice,
     });
