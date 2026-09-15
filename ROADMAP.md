@@ -63,12 +63,15 @@ provisional formats stay out of the UI.
 
 ### Pass 1 - Local integration code + tests (done)
 
-Four releases have shipped on top of the original build, all of them local code
-still inside this pass, and `CHANGELOG.md` is their record: 1.1.0 the NLCIUS
-generate target and `@beliq/sdk` 0.2.0; 1.2.0 the per-standard profile gating and
-`verify` on by default; 1.2.1 PDF output on XRechnung and Peppol BIS; 1.2.2 valid
-GS1 check digits on the prefilled invoice's Peppol ids. The package is `1.2.2`
-and stays unpublished to npm, since Zapier distributes through its own platform.
+Four rounds of changes landed on top of the original build, all of them local
+code still inside this pass: the NLCIUS generate target and `@beliq/sdk` 0.2.0;
+the per-standard profile gating and `verify` on by default; PDF output on
+XRechnung and Peppol BIS; valid GS1 check digits on the prefilled invoice's
+Peppol ids. All of it ships as Zapier version `1.0.0`, the first number the
+platform accepts: Zapier requires a contiguous version chain, so `X.Y.Z` is
+rejected unless its predecessor already exists there. `CHANGELOG.md` records
+what `1.0.0` contains. The package stays unpublished to npm, since Zapier
+distributes through its own platform.
 
 The original build:
 
@@ -98,14 +101,21 @@ The original build:
     one is real work rather than a design choice, and the pin has to move by
     hand because validate requires an exact version.
 
-### Pass 2 - Register + push + in-product verification (operator, needs Zapier login)
-- `npm i -g zapier-platform-cli`; `zapier-platform login` (beliq dev account).
-- `zapier-platform register "beliq"` (writes `.zapierapprc`).
+### Pass 2 - Register + push + in-product verification (partly done)
+
+Registered and pushed 2026-09-15. Integration `beliq`, id `246379`, key
+`App246379`, audience global, role employee, category invoices, homepage
+`https://beliq.eu`, description "beliq is an e-invoicing API that generates,
+validates, parses and converts EU invoices: XRechnung, ZUGFeRD, Factur-X and
+Peppol BIS." `.zapierapprc` is committed. Version `1.0.0` is on the platform in
+state `private`; `validate` reports 25 checks passed, 0 errors, 0 publishing
+warnings.
+
+Remaining, all of it browser or live-key work:
 - Branding in the dashboard: upload `assets/beliq-logo-1024.png` (1024x1024) +
-  brand color `#fe6019` + set the dashboard description to start "beliq is a"
-  (never mention Zapier, reviewer rule M002).
-- `zapier-platform push`; connect a beliq account (confirm the auth test passes,
-  and fails on a wrong key).
+  brand color `#fe6019`. There is no CLI for either.
+- Connect a beliq account (confirm the auth test passes, and fails on a wrong
+  key).
 - Run each create once end to end; confirm generated/converted Files arrive and
   open in a downstream step, and that Validate/Parse return the expected JSON.
 
