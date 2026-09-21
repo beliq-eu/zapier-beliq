@@ -164,9 +164,22 @@ does not own a code change. They belong here.
 
 **`zapier-platform-core` is pinned to 19.0.0 and 19.1.0 is current.** `npm view
 zapier-platform-core version` returned 19.1.0 on 2026-09-21, and `npm run validate` reports the gap
-as D027 alongside the two warnings § *Pass 1* keeps by design. Renovate cannot float this one:
-`validate` requires an exact pin, so the bump is a hand edit to `package.json` plus a re-run of
-`validate`. Open, and not a design choice.
+as D027 alongside the two warnings § *Pass 1* keeps by design.
+
+**The reason this sat open was measured wrong, and the correction is worth keeping.** It was
+recorded as "`validate` requires an exact pin, so Renovate cannot float it and the bump is a hand
+edit". Renovate *can* bump an exact pin to another exact pin, and it already has:
+[#17](https://github.com/beliq-eu/zapier-beliq/pull/17) carries
+`"zapier-platform-core": "19.1.0"`, correctly pinned, beside `@beliq/sdk` `^0.4.0`. What Renovate
+could not do is the **lockfile** (`renovate/artifacts`: "Artifact file update failure"), so `npm ci`
+refused the manifest/lock mismatch, the install step failed and every later step skipped. The PR
+read as a failing test run with nothing tested. So the blocker was never the pin, and a hand edit
+was never needed.
+
+Regenerated the lockfile on that branch on 2026-09-21 and verified the full CI sequence locally
+against a clean `node_modules`: `npm ci` succeeds, `tsc` succeeds, `npm run validate` reports **40
+checks passed, 0 errors and no D027**, leaving only D004 and D003, `vitest run` passes 22 of 22 and
+`scrub:check` is clean. D027 closes when #17 merges.
 
 **Four open Dependabot alerts, all development scope.** Measured against the API on 2026-09-21:
 
@@ -190,3 +203,12 @@ open: [#18](https://github.com/beliq-eu/zapier-beliq/pull/18) (`vitest` to v4.1.
 `renovate.json` deliberately extends the plain `local>beliq-eu/.github` preset rather than the
 automerge variant, so nothing lands without a human. That is the design, and the cost of the design
 is exactly this queue.
+
+**Renovate cannot update this repo's lockfile, and that is why the queue does not clear itself.**
+#17 arrived as a `package.json`-only change with `renovate/artifacts` failing; CI runs `npm ci`,
+which refuses a manifest/lock mismatch at the install step, so the PR presents as a failing test
+run with nothing tested. A reviewer reading the check names sees `test fail` and concludes the
+dependency broke something. It did not. Fixed by hand on #17's branch on 2026-09-21; **the next
+Renovate PR touching a dependency will land the same way** until the lockfile half is solved, so
+this is a standing property of the repo rather than one bad PR. [[bq-renovate-lockfile]] records
+the same shape on the yarn siblings.
