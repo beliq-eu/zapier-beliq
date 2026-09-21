@@ -155,3 +155,38 @@ Remaining, all of it browser or live-key work:
   conformance check runs at Pass 2.
 - Whether to add conditional field display for documentFile vs documentText, vs
   the current show-both + perform-side resolution. Current approach is robust.
+
+## 5. Dependency state, measured 2026-09-21
+
+Re-homed from `beliq-hq/STATUS-CONVENTION-ROADMAP.md`'s parked backlog in pass 8a-2. Both items
+were parked there because they are code changes rather than roadmap defects, and a stamping pass
+does not own a code change. They belong here.
+
+**`zapier-platform-core` is pinned to 19.0.0 and 19.1.0 is current.** `npm view
+zapier-platform-core version` returned 19.1.0 on 2026-09-21, and `npm run validate` reports the gap
+as D027 alongside the two warnings § *Pass 1* keeps by design. Renovate cannot float this one:
+`validate` requires an exact pin, so the bump is a hand edit to `package.json` plus a re-run of
+`validate`. Open, and not a design choice.
+
+**Four open Dependabot alerts, all development scope.** Measured against the API on 2026-09-21:
+
+| # | Severity | Package | Advisory |
+|---|---|---|---|
+| 29 | high | `browserslist` | `GHSA-73wf-gq98-2v4g` |
+| 33 | medium | `vitest` | `GHSA-82fw-gwwq-j7x9` |
+| 32 | medium | `@vitest/mocker` | `GHSA-82fw-gwwq-j7x9` |
+| 34 | medium | `baseline-browser-mapping` | `GHSA-w5vr-8v7q-w6rv` |
+
+Every one carries `scope: development` and sits in `package-lock.json`. None reaches the published
+connector, which stays SDK-thin: `@beliq/sdk` and `zapier-platform-core` are the only runtime
+dependencies. The parked entry recorded **one** alert here when it was written; it is four now, and
+this repo had already cleared its alerts once (#4, 2026-08-08), so these are new rather than
+untouched.
+
+**The gap is merging, not noticing.** Renovate has already proposed the fixes and they are sitting
+open: [#18](https://github.com/beliq-eu/zapier-beliq/pull/18) (`vitest` to v4.1.11, security,
+2026-09-13), [#17](https://github.com/beliq-eu/zapier-beliq/pull/17) (minor dependency updates,
+2026-09-07) and [#16](https://github.com/beliq-eu/zapier-beliq/pull/16) (`@types/node`, 2026-09-07).
+`renovate.json` deliberately extends the plain `local>beliq-eu/.github` preset rather than the
+automerge variant, so nothing lands without a human. That is the design, and the cost of the design
+is exactly this queue.
