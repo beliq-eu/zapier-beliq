@@ -88,7 +88,7 @@ const inputFields: PlainInputField[] = [
     default: 'xml',
     choices: OUTPUT_CHOICES,
     helpText:
-      'XML returns the invoice as text. PDF returns a hybrid PDF/A-3 with the XML embedded for Factur-X and ZUGFeRD. XRechnung and Peppol BIS have no hybrid form, so PDF returns a visualization of the invoice with no XML inside it; the legal document for those two is the XML.',
+      'XML returns the invoice as text. PDF returns a hybrid PDF/A-3 with the XML embedded for Factur-X and ZUGFeRD. XRechnung and Peppol BIS have no hybrid form, so PDF returns a visualization of the invoice with no XML inside it; the legal document for those two is the XML. NLCIUS always returns XML, whatever this field says.',
   },
   {
     key: 'invoice',
