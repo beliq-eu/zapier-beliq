@@ -5,6 +5,15 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
+## 1.0.1 - 2026-09-23
+
+- The Output field's help text says NLCIUS always returns XML. Choosing NLCIUS
+  sends Peppol BIS with the `netherlands-nlcius` profile as XML, so an Output of
+  PDF was dropped without a word; it still is, but the form now says so.
+- `@beliq/sdk` 0.4.0, up from 0.3.1.
+- `zapier-platform-core` 19.1.0, up from 19.0.0, which clears Zapier's D027
+  upgrade warning.
+
 ## 1.0.0 - 2026-09-15
 
 First version pushed to Zapier (integration `App246379`, private).
