@@ -37,15 +37,21 @@ The dropdowns list the formats beliq offers publicly today. The API can accept a
 ```bash
 npm install
 npm run build        # tsc -> dist/
+npm run typecheck    # type-check src/ and test/, emits nothing
 npm test             # unit tests (field-to-SDK mapping, no network)
 npm run scrub:check  # fail if an em-dash slipped into a user-facing string
-npx zapier-platform validate   # structural + conformance checks (needs Zapier login)
+npm run validate     # schema + Zapier's integration checks, no login needed
 ```
 
-Live smoke test against the real API:
+`npm run validate` fails on a schema error, a failed integration check or a
+publishing task. `zapier-platform validate` on its own exits non-zero only for
+the schema error. General warnings, such as D003 and D004, pass.
+
+Live smoke test against the real API. Use a sandbox key (`blq_test_...`), as CI
+does: it draws on the sandbox allowance instead of the plan quota.
 
 ```bash
-BELIQ_API_KEY=api_xxx npm run test:integration
+BELIQ_API_KEY=blq_test_xxx npm run test:integration
 ```
 
 Push a private version to your Zapier editor:
