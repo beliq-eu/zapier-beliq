@@ -102,6 +102,7 @@ import generateInvoice from '../src/creates/generateInvoice';
 import validateInvoice from '../src/creates/validateInvoice';
 import parseInvoice from '../src/creates/parseInvoice';
 import convertInvoice from '../src/creates/convertInvoice';
+import { resolveGenerateTarget } from '../src/lib/options';
 
 const AUTH = { apiKey: 'test-key-123' };
 
@@ -467,5 +468,23 @@ describe('generate_invoice profile gating', () => {
       (f) => (f as { key?: string }).key === 'verify',
     ) as { default?: string };
     expect(verify.default).toBe('true');
+  });
+
+  // A preset that forces its output wins over the Output field, so that field
+  // has to say so, or the user's choice is dropped without a word.
+  it('names every standard that overrides Output in the Output help text', () => {
+    const fields = generateInvoice.operation.inputFields as {
+      key?: string;
+      choices?: Record<string, string>;
+      helpText?: string;
+    }[];
+    const standard = fields.find((f) => f.key === 'standard')!;
+    const output = fields.find((f) => f.key === 'output')!;
+    const forcing = Object.entries(standard.choices!).flatMap(([value, label]) => {
+      const forced = resolveGenerateTarget(value).output;
+      return forced ? [`${label} always returns ${forced.toUpperCase()}`] : [];
+    });
+    expect(forcing).toEqual(['NLCIUS always returns XML']);
+    for (const sentence of forcing) expect(output.helpText).toContain(sentence);
   });
 });
