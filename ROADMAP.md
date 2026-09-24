@@ -1,6 +1,6 @@
 # Zapier beliq connector - implementation roadmap
 
-`status: live, next: pass 2, zapier-platform register and push, then connect an account and run each create end to end`
+`status: live, next: merge zapier-beliq#28 and zapier-beliq#29 with beliq-hq 8f on or after 2026-10-01 (pushes 1.0.2), then pass 2's in-product check: branding, connect an account, run each create in a Zap`
 
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
@@ -97,9 +97,8 @@ The original build:
   - D003 connectionLabel: no label is set on purpose (reviewer rule 5.6 forbids
     the app name in the label, and beliq has no other stable per-account value
     worth showing). Zapier auto-numbers connections.
-  - D027 asks for `zapier-platform-core` 19.1.0 against the pinned 19.0.0. This
-    one is real work rather than a design choice, and the pin has to move by
-    hand because validate requires an exact version.
+  - D027 asked for `zapier-platform-core` 19.1.0 against the pinned 19.0.0.
+    Closed 2026-09-21 by #17, which moved the exact pin to 19.1.0; see §5.
 
 ### Pass 2 - Register + push + in-product verification (partly done)
 
@@ -107,17 +106,47 @@ Registered and pushed 2026-09-15. Integration `beliq`, id `246379`, key
 `App246379`, audience global, role employee, category invoices, homepage
 `https://beliq.eu`, description "beliq is an e-invoicing API that generates,
 validates, parses and converts EU invoices: XRechnung, ZUGFeRD, Factur-X and
-Peppol BIS." `.zapierapprc` is committed. Version `1.0.0` is on the platform in
-state `private`; `validate` reports 25 checks passed, 0 errors, 0 publishing
+Peppol BIS." `.zapierapprc` is committed. Version `1.0.0` was pushed on
+2026-09-15 and `validate` reported 25 checks passed, 0 errors, 0 publishing
 warnings.
 
-Remaining, all of it browser or live-key work:
-- Branding in the dashboard: upload `assets/beliq-logo-1024.png` (1024x1024) +
-  brand color `#fe6019`. There is no CLI for either.
-- Connect a beliq account (confirm the auth test passes, and fails on a wrong
-  key).
-- Run each create once end to end; confirm generated/converted Files arrive and
-  open in a downstream step, and that Validate/Parse return the expected JSON.
+`1.0.1` was pushed 2026-09-24 00:21 Berlin by beliq-hq `CONNECTORS-ROADMAP.md`
+sub-pass 8b (the NLCIUS Output help text). Both versions are `private` with no
+Zap users. `1.0.2` is prepared in zapier-beliq#29, on top of the fixes in
+zapier-beliq#28; `npx zapier-platform versions` says whether it is pushed.
+
+Pass 2 is signed off on `1.0.2`, not `1.0.1`: it is the version Pass 3
+promotes, and its PDF output-field samples (R97 in zapier-beliq#28) can only be
+seen there. Branding does not depend on the version and can happen any time.
+
+Remaining, all of it in a browser at `https://developer.zapier.com` and the Zap
+editor. Use a `blq_test_` key from your own beliq organization, never the shared
+connector CI organization's key: that key should not be stored in Zapier, and
+the sandbox allowance is metered per organization
+(`beliq-types/src/pricing.ts:82`), so a CI key would spend the allowance the
+connector repos' `live` jobs run on.
+
+1. Branding: upload `assets/beliq-logo-1024.png` (1024x1024 PNG) and set the
+   brand color `#fe6019`. There is no CLI for either.
+2. Connect a beliq account. A valid key passes the test (`GET /v1/me`). A wrong
+   key is refused with "The beliq API key is invalid."
+3. Generate Invoice, Output XML, with the prefilled invoice: returns `xml`,
+   `schematronVersion` and `outputEnvelope`.
+4. Generate Invoice, Output PDF: before the test run, the Zap editor already
+   shows File, Filename, Size (bytes) and PDF Kind with sample values (R97).
+   After it, `file` opens as a PDF in a downstream step (email attachment or
+   file upload) and `pdfKind` is `hybrid` or `visualization`.
+5. Validate Invoice on the XML from step 3: `valid` is true.
+6. Parse Invoice on the same XML: returns `format` and the `invoice` fields
+   (number, issue date, currency, gross total).
+7. Convert Invoice on the same XML: `file` opens in a downstream step, and
+   `lostElementsCount` is present.
+8. Turn one of these Zaps on, then run `npx zapier-platform versions` in this
+   repo. Expected: `1.0.2` shows 1 Zap user, which proves a live Zap sits on the
+   new version. The count lags; re-run after about 10 seconds. A step only
+   tested in the editor probably does not count.
+9. `npx zapier-platform logs` shows the runs. It lists `z.request` traffic only
+   (the credential test and file hydration), not the SDK's calls; see §0.
 
 ### Pass 3 - Zap templates + App Directory submission (operator)
 - Author Zap templates in the developer dashboard (one per action angle), for
@@ -197,6 +226,11 @@ dependencies. The parked entry recorded **one** alert here when it was written; 
 this repo had already cleared its alerts once (#4, 2026-08-08), so these are new rather than
 untouched.
 
+**Re-read 2026-09-25: two are still open**, #29 (`browserslist`, high) and #34
+(`baseline-browser-mapping`, medium), both still development scope. #32 and #33 closed with #18.
+beliq-hq `CONNECTORS-ROADMAP.md` item 8 tracks the remaining two across the connector repos, so they
+are not re-planned here.
+
 **The gap was merging, not noticing, and the queue cleared on 2026-09-21.** Renovate had already
 proposed the fixes and they were still sitting open when this was measured:
 [#18](https://github.com/beliq-eu/zapier-beliq/pull/18) (`vitest` to v4.1.11, security, proposed
@@ -204,15 +238,33 @@ proposed the fixes and they were still sitting open when this was measured:
 dependency updates, proposed 2026-09-07, merged 2026-09-21) and
 [#16](https://github.com/beliq-eu/zapier-beliq/pull/16) (`@types/node`, proposed 2026-09-07, merged
 2026-09-21).
-`renovate.json` deliberately extends the plain `local>beliq-eu/.github` preset rather than the
-automerge variant, so nothing lands without a human. That is the design, and the cost of the design
-was exactly this queue.
+At the time, `renovate.json` extended the plain `local>beliq-eu/.github` preset rather than the
+automerge variant, so nothing landed without a human, and the cost of that design was exactly this
+queue. [#24](https://github.com/beliq-eu/zapier-beliq/pull/24) moved it to
+`local>beliq-eu/.github:automerge` on 2026-09-22, which merges patch and digest updates by itself
+once CI is green.
 
 **Renovate cannot update this repo's lockfile, and that is why the queue does not clear itself.**
 #17 arrived as a `package.json`-only change with `renovate/artifacts` failing; CI runs `npm ci`,
 which refuses a manifest/lock mismatch at the install step, so the PR presents as a failing test
 run with nothing tested. A reviewer reading the check names sees `test fail` and concludes the
-dependency broke something. It did not. Fixed by hand on #17's branch on 2026-09-21; **the next
-Renovate PR touching a dependency will land the same way** until the lockfile half is solved, so
-this is a standing property of the repo rather than one bad PR. [[bq-renovate-lockfile]] records
-the same shape on the yarn siblings.
+dependency broke something. It did not. Fixed by hand on #17's branch on 2026-09-21. The
+expectation was that **the next Renovate PR touching a dependency will land the same way** until
+the lockfile half is solved. [[bq-renovate-lockfile]] records the same shape on the yarn siblings.
+
+**Unverified since 2026-09-21: no Renovate PR has arrived here since #16, #17 and #18**, so whether
+the lockfile update still fails is not known. The next Renovate PR that changes `package.json`
+settles it: a green `renovate/artifacts` check and a `package-lock.json` in its diff mean it is
+fixed. With `:automerge` a green patch PR now merges by itself, but one whose lockfile update fails
+also fails `npm ci`, so it stays open instead of landing broken.
+
+## 6. Parked / out of scope
+
+- beliq-hq `CONNECTORS-ROADMAP.md`, "Sub-pass 8f", "Parked by 8f" owns two small zapier items: the
+  `1.0.1` `source.zip` on Zapier carries a `.git` pointer file with a local absolute path, because
+  the 8b script pushed from a worktree (`1.0.2` replaces it as the newest version); and
+  `test/sample-invoice.test.ts` and `test/integration.test.ts` still use `any`. Tracked there, not
+  copied here.
+- `CHANGELOG.md` dates `1.0.1` as 2026-09-23, but it was merged at 00:20 and pushed at 00:21 Berlin on
+  2026-09-24. Not fixed yet: zapier-beliq#29 adds the `1.0.2` entry directly above that heading, so
+  an edit there now could conflict with it. xs, after zapier-beliq#29 merges.
