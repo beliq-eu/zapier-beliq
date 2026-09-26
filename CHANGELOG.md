@@ -5,6 +5,11 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
+## 1.0.2 - 2026-09-26
+
+- Generate Invoice's PDF-only output fields (File, Filename, Size (bytes), PDF
+  Kind) carry sample values, so the Zap editor shows them before a test run.
+
 ## 1.0.1 - 2026-09-23
 
 - The Output field's help text says NLCIUS always returns XML. Choosing NLCIUS
