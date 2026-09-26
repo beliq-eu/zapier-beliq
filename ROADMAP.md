@@ -176,12 +176,28 @@ connector repos' `live` jobs run on.
   seller taxId for VAT category S, net + tax = gross, taxSummary) so they 200
   rather than 422.
 - `zapier-platform-core` pinned to an exact version (validate requires it).
+- `zapier-platform validate` runs Zapier's server-side integration checks with
+  no login. Without `~/.zapierrc` (or without `.zapierapprc`), zapier-platform-cli
+  19.1.0 posts the app definition to Zapier's check endpoint anonymously
+  (`validateApp` in `src/utils/api.js`). That is the run CI gets: 26 checks in
+  the `test` job of https://github.com/beliq-eu/zapier-beliq/actions/runs/35798156755
+  (2026-09-23). Logged in with the linked app, the same command also runs the
+  app-level checks (38 checks on 2026-09-15, 40 on 2026-09-21).
+- `npm run validate` is `scripts/validate-gate.sh`, not the bare CLI. The CLI
+  exits non-zero only for a schema error; a failed integration check (blocks
+  `push`) or a publishing task (blocks `promote`) is printed and it still exits
+  0 (`src/oclif/commands/validate.js`). The gate reads the CLI's summary counts,
+  fails on either, and fails when it cannot read them. General warnings, such as
+  D003 and D004, pass.
+- Tests are type-checked: `npm run typecheck` runs `tsc` over `src/` and `test/`
+  with `tsconfig.test.json`, and CI runs it. `tsconfig.json` still excludes
+  `test/`, because its `rootDir: src` shapes the `dist/` build.
+- Generate has one operation `sample`, the XML shape. The keys only PDF output
+  returns (`file`, `filename`, `sizeBytes`, `pdfKind`) carry their sample on
+  their own output field, which Zapier merges into the operation sample.
 
 ## 4. Open questions / known unknowns
 
-- Server-side `zapier-platform validate` needs a Zapier login. Local schema
-  validation against `zapier-platform-schema` is a stand-in until then; the full
-  conformance check runs at Pass 2.
 - Whether to add conditional field display for documentFile vs documentText, vs
   the current show-both + perform-side resolution. Current approach is robust.
 

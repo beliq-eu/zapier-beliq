@@ -30,8 +30,15 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Local schema + integration checks. The server-side conformance run needs
-      # a Zapier login, so this is the offline subset of what `promote` enforces.
+      - name: Typecheck (src and tests)
+        run: npm run typecheck
+
+      # Schema validation plus Zapier's server-side integration checks. With no
+      # login the CLI sends the app definition to Zapier's check endpoint
+      # anonymously, so this needs no secret; a logged-in run against the
+      # registered app runs more checks than this one. scripts/validate-gate.sh
+      # fails the step on a failed check or a publishing task, which the CLI
+      # alone exits 0 on.
       - name: Zapier platform validate
         run: npm run validate
 
