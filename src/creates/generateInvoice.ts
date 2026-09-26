@@ -9,7 +9,7 @@ import {
   resolveGenerateTarget,
   usableProfile,
 } from '../lib/options';
-import { generateXmlSample } from '../lib/samples';
+import { generatePdfSample, generateXmlSample } from '../lib/samples';
 
 // EN 16931-valid default: dueDate (rule BR-CO-25), seller taxId for VAT category
 // S, a taxSummary, and consistent totals (net + tax = gross). Generates as-is so
@@ -203,13 +203,18 @@ export default {
     sample: generateXmlSample,
     outputFields: [
       { key: 'xml', label: 'XML' },
-      { key: 'file', label: 'File', type: 'file' },
-      { key: 'filename', label: 'Filename' },
+      { key: 'file', label: 'File', type: 'file', sample: generatePdfSample.file },
+      { key: 'filename', label: 'Filename', sample: generatePdfSample.filename },
       { key: 'contentType', label: 'Content Type' },
-      { key: 'sizeBytes', label: 'Size (bytes)', type: 'integer' },
+      {
+        key: 'sizeBytes',
+        label: 'Size (bytes)',
+        type: 'integer',
+        sample: generatePdfSample.sizeBytes,
+      },
       { key: 'schematronVersion', label: 'Schematron Version' },
       { key: 'outputEnvelope', label: 'Output Envelope' },
-      { key: 'pdfKind', label: 'PDF Kind' },
+      { key: 'pdfKind', label: 'PDF Kind', sample: generatePdfSample.pdfKind },
     ],
   },
 };

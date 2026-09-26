@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Beliq } from '@beliq/sdk';
+import type { Bundle, ZObject } from 'zapier-platform-core';
 
 // Unit tests for the field-to-SDK mapping in each create. No network: the SDK
 // accepts an injected `fetch`, so we record the outgoing request the create
@@ -98,6 +98,25 @@ async function withFetch<T>(fetchImpl: typeof fetch, fn: () => Promise<T>): Prom
   }
 }
 
+interface StubBundle {
+  authData: Record<string, string>;
+  inputData: Record<string, unknown>;
+}
+
+/**
+ * Call a create's real perform. The creates read only `request`, `stashFile`
+ * and `errors` from `z`, and only `authData` and `inputData` from the bundle,
+ * so the stubs carry just those; the casts here are the one place they stand in
+ * for Zapier's full runtime types.
+ */
+function runPerform<R>(
+  create: { operation: { perform: (z: ZObject, bundle: Bundle) => Promise<R> } },
+  z: ReturnType<typeof makeZ>,
+  bundle: StubBundle,
+): Promise<R> {
+  return create.operation.perform(z as unknown as ZObject, bundle as Bundle);
+}
+
 import generateInvoice from '../src/creates/generateInvoice';
 import validateInvoice from '../src/creates/validateInvoice';
 import parseInvoice from '../src/creates/parseInvoice';
@@ -136,7 +155,7 @@ describe('generate_invoice mapping', () => {
     };
 
     const result = await withFetch(fetchXml, () =>
-      (generateInvoice.operation.perform as any)(z, bundle),
+      runPerform(generateInvoice, z, bundle),
     );
 
     expect(recorder).toHaveLength(1);
@@ -154,10 +173,12 @@ describe('generate_invoice mapping', () => {
       invoice: { number: 'INV-1' },
     });
 
-    expect(result.xml).toBe('<Invoice>ok</Invoice>');
-    expect(result.contentType).toBe('application/xml');
-    expect(result.schematronVersion).toBe('xr-3.0.2');
-    expect(result.outputEnvelope).toBe('ubl');
+    expect(result).toEqual({
+      xml: '<Invoice>ok</Invoice>',
+      contentType: 'application/xml',
+      schematronVersion: 'xr-3.0.2',
+      outputEnvelope: 'ubl',
+    });
     expect(stashes).toHaveLength(0);
   });
 
@@ -165,7 +186,7 @@ describe('generate_invoice mapping', () => {
     const recorder: RecordedRequest[] = [];
     const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
     const fetchImpl = recordingFetch(
-      { body: pdfBytes, headers: { 'content-type': 'application/pdf', 'x-pdf-kind': 'facturx' } },
+      { body: pdfBytes, headers: { 'content-type': 'application/pdf', 'x-pdf-kind': 'hybrid' } },
       recorder,
     );
     const stashes: StashCall[] = [];
@@ -183,7 +204,7 @@ describe('generate_invoice mapping', () => {
     };
 
     const result = await withFetch(fetchImpl, () =>
-      (generateInvoice.operation.perform as any)(z, bundle),
+      runPerform(generateInvoice, z, bundle),
     );
 
     const req = recorder[0];
@@ -199,10 +220,13 @@ describe('generate_invoice mapping', () => {
     expect(stashes[0].filename).toBe('invoice.pdf');
     expect(stashes[0].contentType).toBe('application/pdf');
     expect(stashes[0].length).toBe(pdfBytes.length);
-    expect(result.file).toBe('https://files.zapier.test/invoice.pdf');
-    expect(result.filename).toBe('invoice.pdf');
-    expect(result.pdfKind).toBe('facturx');
-    expect(result.sizeBytes).toBe(pdfBytes.length);
+    expect(result).toEqual({
+      file: 'https://files.zapier.test/invoice.pdf',
+      filename: 'invoice.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: pdfBytes.length,
+      pdfKind: 'hybrid',
+    });
   });
 
   it('resolves the NLCIUS target to peppol-bis + the netherlands-nlcius profile', async () => {
@@ -223,7 +247,7 @@ describe('generate_invoice mapping', () => {
       },
     };
 
-    await withFetch(fetchImpl, () => (generateInvoice.operation.perform as any)(z, bundle));
+    await withFetch(fetchImpl, () => runPerform(generateInvoice, z, bundle));
 
     const body = JSON.parse(recorder[0].body as string);
     expect(body.standard).toBe('peppol-bis');
@@ -251,7 +275,7 @@ describe('generate_invoice mapping', () => {
     };
 
     await withFetch(fetchImpl, () =>
-      (generateInvoice.operation.perform as any)(makeZ([]), bundle),
+      runPerform(generateInvoice, makeZ([]), bundle),
     );
 
     const body = JSON.parse(recorder[0].body as string);
@@ -279,10 +303,63 @@ describe('generate_invoice mapping', () => {
     };
 
     await withFetch(fetchImpl, () =>
-      (generateInvoice.operation.perform as any)(makeZ([]), bundle),
+      runPerform(generateInvoice, makeZ([]), bundle),
     );
 
     expect(JSON.parse(recorder[0].body as string).template).toBe('standard');
+  });
+});
+
+describe('generate_invoice output fields', () => {
+  // Zapier shows the static samples in the Zap editor when a user has no test
+  // data for the step. An operation carries one `sample` (Generate's is the XML
+  // shape), so a key only PDF output returns needs a sample on its own output
+  // field, or the editor offers it with no value.
+  const outputFields: { key: string; label?: string; sample?: unknown }[] =
+    generateInvoice.operation.outputFields;
+  const operationSample: Record<string, unknown> = generateInvoice.operation.sample;
+
+  async function expectEveryReturnedKeyDeclaredAndSampled(
+    inputData: Record<string, unknown>,
+    response: FetchResponse,
+  ) {
+    const result: Record<string, unknown> = await withFetch(recordingFetch(response, []), () =>
+      runPerform(generateInvoice, makeZ([]), { authData: AUTH, inputData }),
+    );
+    expect(Object.keys(result).length).toBeGreaterThan(0);
+    for (const [key, returned] of Object.entries(result)) {
+      const field = outputFields.find((f) => f.key === key);
+      expect(field?.label, `${key} is declared in outputFields with a label`).toBeTruthy();
+      const shown = key in operationSample ? operationSample[key] : field?.sample;
+      expect(shown, `${key} has a sample value`).toBeDefined();
+      if (returned !== null) {
+        expect(typeof shown, `${key} sample has the type a run returns`).toBe(typeof returned);
+      }
+    }
+  }
+
+  it('declares and samples every key XML output returns', async () => {
+    await expectEveryReturnedKeyDeclaredAndSampled(
+      { standard: 'xrechnung', output: 'xml', invoice: JSON.stringify({ number: 'INV-5' }) },
+      {
+        body: '<Invoice/>',
+        headers: {
+          'content-type': 'application/xml',
+          'x-schematron-version': 'xr-3.0.2',
+          'x-output-envelope': 'ubl',
+        },
+      },
+    );
+  });
+
+  it('declares and samples every key PDF output returns', async () => {
+    await expectEveryReturnedKeyDeclaredAndSampled(
+      { standard: 'facturx', output: 'pdf', invoice: JSON.stringify({ number: 'INV-6' }) },
+      {
+        body: new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]), // %PDF-1
+        headers: { 'content-type': 'application/pdf', 'x-pdf-kind': 'hybrid' },
+      },
+    );
   });
 });
 
@@ -304,7 +381,7 @@ describe('validate_invoice mapping', () => {
     };
 
     const result = await withFetch(fetchImpl, () =>
-      (validateInvoice.operation.perform as any)(z, bundle),
+      runPerform(validateInvoice, z, bundle),
     );
 
     expect(recorder).toHaveLength(1);
@@ -336,7 +413,7 @@ describe('parse_invoice mapping', () => {
     };
 
     const result = await withFetch(fetchImpl, () =>
-      (parseInvoice.operation.perform as any)(z, bundle),
+      runPerform(parseInvoice, z, bundle),
     );
 
     const req = recorder[0];
@@ -370,7 +447,7 @@ describe('convert_invoice mapping', () => {
     };
 
     const result = await withFetch(fetchImpl, () =>
-      (convertInvoice.operation.perform as any)(z, bundle),
+      runPerform(convertInvoice, z, bundle),
     );
 
     const req = recorder[0];
@@ -402,7 +479,7 @@ describe('convert_invoice mapping', () => {
     };
 
     const result = await withFetch(fetchImpl, () =>
-      (convertInvoice.operation.perform as any)(z, bundle),
+      runPerform(convertInvoice, z, bundle),
     );
 
     const req = recorder[0];
@@ -430,7 +507,7 @@ describe('generate_invoice profile gating', () => {
     );
     const z = makeZ([]);
     await withFetch(fetchXml, () =>
-      (generateInvoice.operation.perform as any)(z, {
+      runPerform(generateInvoice, z, {
         authData: AUTH,
         inputData: { output: 'xml', invoice: JSON.stringify({ number: 'INV-1' }), ...inputData },
       }),

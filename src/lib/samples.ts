@@ -9,12 +9,14 @@ export const generateXmlSample = {
   outputEnvelope: 'ubl',
 };
 
+// An operation carries a single `sample`, so Generate's is the XML shape above.
+// These are the keys only PDF output returns. generateInvoice sets each one as
+// its output field's own `sample`, which Zapier merges into the operation sample.
 export const generatePdfSample = {
   file: 'https://zapier-dev-files.s3.amazonaws.com/cli-platform/invoice.pdf',
   filename: 'invoice.pdf',
-  contentType: 'application/pdf',
   sizeBytes: 128000,
-  pdfKind: 'facturx',
+  pdfKind: 'hybrid',
 };
 
 export const validateSample = {
