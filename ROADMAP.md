@@ -1,6 +1,6 @@
 # Zapier beliq connector - implementation roadmap
 
-`status: live, next: merge zapier-beliq#28 and zapier-beliq#29 with beliq-hq 8f on or after 2026-10-01 (pushes 1.0.2), then pass 2's in-product check: branding, connect an account, run each create in a Zap`
+`status: live, next: [operator] pass 2's in-product check on 1.0.2 (pushed 2026-09-26): branding, connect an account, run each create in a Zap`
 
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
@@ -112,8 +112,13 @@ warnings.
 
 `1.0.1` was pushed 2026-09-24 00:21 Berlin by beliq-hq `CONNECTORS-ROADMAP.md`
 sub-pass 8b (the NLCIUS Output help text). Both versions are `private` with no
-Zap users. `1.0.2` is prepared in zapier-beliq#29, on top of the fixes in
-zapier-beliq#28; `npx zapier-platform versions` says whether it is pushed.
+Zap users. `1.0.2` was pushed 2026-09-26 by beliq-hq's 8f pass 1 landing, from
+zapier-beliq#28 (the fixes) and #29 (the release), also `private`.
+
+Pass 3's promotion (making the integration public) waits for beliq-hq's
+API-stability gate, decided 2026-09-26: beta exit, or 4 straight weeks with no
+breaking change to the `/v1` operations the connectors call. See
+`CONNECTORS-ROADMAP.md`, "Store listings wait for a stable API".
 
 Pass 2 is signed off on `1.0.2`, not `1.0.1`: it is the version Pass 3
 promotes, and its PDF output-field samples (R97 in zapier-beliq#28) can only be
