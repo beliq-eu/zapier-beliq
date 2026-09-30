@@ -160,7 +160,10 @@ connector repos' `live` jobs run on.
 - `zapier-platform promote <version>` and submit for App Directory review.
 - Adoption gates (all on the promoted version): 3 distinct users with a live
   Zap, at least 1 live Zap per action, a successful live run per action, a
-  connected account. Reviewer rules to honor: 5.6 (connection label has no app
+  connected account, and M005 ("no users match domain": a user on the
+  integration needs an email at the homepage's domain, `beliq.eu`; see
+  https://docs.zapier.com/platform/publish/integration-checks-reference#M005).
+  Reviewer rules to honor: 5.6 (connection label has no app
   name; none is set), 5.8 (every action description starts with a third-person
   verb: Generates / Validates / Parses / Converts), M002 (dashboard/App Directory
   description starts "beliq is a" and never says "Zapier").
@@ -193,7 +196,11 @@ connector repos' `live` jobs run on.
   `push`) or a publishing task (blocks `promote`) is printed and it still exits
   0 (`src/oclif/commands/validate.js`). The gate reads the CLI's summary counts,
   fails on either, and fails when it cannot read them. General warnings, such as
-  D003 and D004, pass.
+  D003 and D004, pass. Logged in, the gate therefore exits 1 until Pass 3's
+  adoption gates are met: on 2026-09-30 it counted 40 checks passed and 11
+  publishing tasks (T001 and S002 per action, A001, S001, M005). The anonymous
+  run, which is what CI gets, passes. Run it with `HOME` pointed at an empty
+  directory to reproduce CI locally.
 - Tests are type-checked: `npm run typecheck` runs `tsc` over `src/` and `test/`
   with `tsconfig.test.json`, and CI runs it. `tsconfig.json` still excludes
   `test/`, because its `rootDir: src` shapes the `dist/` build.
@@ -205,8 +212,12 @@ connector repos' `live` jobs run on.
 
 - Whether to add conditional field display for documentFile vs documentText, vs
   the current show-both + perform-side resolution. Current approach is robust.
+- Which version Pass 3 promotes. `1.0.2` bundles `@beliq/sdk` 0.4.0; `main` locks 0.4.2 (#32,
+  2026-09-28). Promoting `1.0.2` ships the older SDK, which works: 0.4.1 and 0.4.2 only add
+  invoice fields, and the invoice JSON passes through. Pushing `1.0.3` first ships the current lock,
+  but Pass 2's in-product check then has to run again on `1.0.3`.
 
-## 5. Dependency state, measured 2026-09-21
+## 5. Dependency state, measured 2026-09-21, re-read 2026-09-30
 
 Re-homed from `beliq-hq/STATUS-CONVENTION-ROADMAP.md`'s parked backlog in pass 8a-2. Both items
 were parked there because they are code changes rather than roadmap defects, and a stamping pass
@@ -234,7 +245,7 @@ checks passed, 0 errors and no D027**, leaving only D004 and D003, `vitest run` 
 
 **Four open Dependabot alerts, all development scope.** Measured against the API on 2026-09-21:
 
-| # | Severity | Package | Advisory |
+| Alert | Severity | Package | Advisory |
 |---|---|---|---|
 | 29 | high | `browserslist` | `GHSA-73wf-gq98-2v4g` |
 | 33 | medium | `vitest` | `GHSA-82fw-gwwq-j7x9` |
@@ -247,10 +258,27 @@ dependencies. The parked entry recorded **one** alert here when it was written; 
 this repo had already cleared its alerts once (#4, 2026-08-08), so these are new rather than
 untouched.
 
-**Re-read 2026-09-25: two are still open**, #29 (`browserslist`, high) and #34
-(`baseline-browser-mapping`, medium), both still development scope. #32 and #33 closed with #18.
-beliq-hq `CONNECTORS-ROADMAP.md` item 8 tracks the remaining two across the connector repos, so they
-are not re-planned here.
+Alerts 32 and 33 closed with #18 on 2026-09-21. **Re-read 2026-09-30: three open, all development
+scope, all reached through `zapier-platform-cli`:** alert 29 (`browserslist` 4.28.4, patched
+4.28.7), alert 34 (`baseline-browser-mapping` 2.10.40, patched 2.11.0) and alert 36 (`ip-address`
+10.4.0, `GHSA-2vr4-cq9g-pvrc`, patched 10.5.1, opened 2026-09-29). Each patched version sits inside
+the range its consumer already allows, so a lockfile update fixes all three with no override
+beyond one raised floor. The lock moved on 2026-09-30 to `browserslist` 4.29.3,
+`baseline-browser-mapping` 2.11.26 and `ip-address` 10.7.2, and the `ip-address` override floor
+went from `^10.3.1` (inside the vulnerable range) to `^10.5.1`. `npm ls --omit=dev` is unchanged,
+so the pushed `1.0.2` bundle is unaffected. Alert URLs:
+https://github.com/beliq-eu/zapier-beliq/security/dependabot/29,
+https://github.com/beliq-eu/zapier-beliq/security/dependabot/34,
+https://github.com/beliq-eu/zapier-beliq/security/dependabot/36.
+
+**The `@sigstore/core` override is gone.** #4 (2026-08-08) added `"@sigstore/core": "^3.2.1"` to
+clear alert 13 (`<= 3.2.0`). Its three consumers under `zapier-platform-cli` > `pacote` now declare
+the floor themselves: `sigstore` 4.1.1 and `@sigstore/verify` 3.1.1 want `^3.2.1`, `@sigstore/sign`
+`^3.2.0`, and npm keeps one copy that satisfies all three, so it still resolves to 3.2.1 and 3.2.0
+cannot come back. [#33](https://github.com/beliq-eu/zapier-beliq/pull/33) wanted to raise that
+override to `^4.0.0`, which would have forced a major none of the three supports; its `test` check
+was green only because nothing runs that path. Keeping the override would have done the reverse
+later: once `zapier-platform-cli` moves to a `sigstore` that needs core 4, it forces 3.x on it.
 
 **The gap was merging, not noticing, and the queue cleared on 2026-09-21.** Renovate had already
 proposed the fixes and they were still sitting open when this was measured:
@@ -265,19 +293,15 @@ queue. [#24](https://github.com/beliq-eu/zapier-beliq/pull/24) moved it to
 `local>beliq-eu/.github:automerge` on 2026-09-22, which merges patch and digest updates by itself
 once CI is green.
 
-**Renovate cannot update this repo's lockfile, and that is why the queue does not clear itself.**
-#17 arrived as a `package.json`-only change with `renovate/artifacts` failing; CI runs `npm ci`,
-which refuses a manifest/lock mismatch at the install step, so the PR presents as a failing test
-run with nothing tested. A reviewer reading the check names sees `test fail` and concludes the
-dependency broke something. It did not. Fixed by hand on #17's branch on 2026-09-21. The
-expectation was that **the next Renovate PR touching a dependency will land the same way** until
-the lockfile half is solved. [[bq-renovate-lockfile]] records the same shape on the yarn siblings.
-
-**Unverified since 2026-09-21: no Renovate PR has arrived here since #16, #17 and #18**, so whether
-the lockfile update still fails is not known. The next Renovate PR that changes `package.json`
-settles it: a green `renovate/artifacts` check and a `package-lock.json` in its diff mean it is
-fixed. With `:automerge` a green patch PR now merges by itself, but one whose lockfile update fails
-also fails `npm ci`, so it stays open instead of landing broken.
+**Renovate updates this repo's lockfile, checked 2026-09-30.** On 2026-09-21 it could not: #17
+arrived as a `package.json`-only change with `renovate/artifacts` failing, CI's `npm ci` refused the
+manifest/lock mismatch, and the PR presented as a failing test run with nothing tested. It was fixed
+by hand on #17's branch. The next two Renovate PRs both carried the lockfile:
+[#32](https://github.com/beliq-eu/zapier-beliq/pull/32) (`@beliq/sdk` 0.4.2, lockfile only, merged by
+`:automerge` 2026-09-28 06:51 CEST) and #33 (`package.json` plus `package-lock.json`, `test`
+green). What changed on Renovate's side was not investigated. A relapse looks like #17: a
+`package.json`-only diff and `npm ci` failing in `test`. [[bq-renovate-lockfile]] records the same
+shape on the yarn siblings.
 
 ## 6. Parked / out of scope
 
@@ -286,6 +310,8 @@ also fails `npm ci`, so it stays open instead of landing broken.
   the 8b script pushed from a worktree (`1.0.2` replaces it as the newest version); and
   `test/sample-invoice.test.ts` and `test/integration.test.ts` still use `any`. Tracked there, not
   copied here.
-- `CHANGELOG.md` dates `1.0.1` as 2026-09-23, but it was merged at 00:20 and pushed at 00:21 Berlin on
-  2026-09-24. Not fixed yet: zapier-beliq#29 adds the `1.0.2` entry directly above that heading, so
-  an edit there now could conflict with it. xs, after zapier-beliq#29 merges.
+- The `sigstore` override (`"sigstore": "^4.1.1"`, `package.json`) has the latent shape the
+  `@sigstore/core` one had (§5). It cannot go yet: `pacote` 21.5.1 declares `sigstore` `^4.0.0`,
+  which still admits the versions alert 14 (`<= 4.1.0`) covers. Once a `pacote` inside
+  `zapier-platform-cli` wants `sigstore` 5, the override forces 4.x on it and CI will not notice.
+  Drop it then, or as soon as `pacote`'s own floor reaches 4.1.1. xs.

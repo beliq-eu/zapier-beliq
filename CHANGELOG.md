@@ -10,7 +10,7 @@ integration can carry, and it contains everything built before registration.
 - Generate Invoice's PDF-only output fields (File, Filename, Size (bytes), PDF
   Kind) carry sample values, so the Zap editor shows them before a test run.
 
-## 1.0.1 - 2026-09-23
+## 1.0.1 - 2026-09-24
 
 - The Output field's help text says NLCIUS always returns XML. Choosing NLCIUS
   sends Peppol BIS with the `netherlands-nlcius` profile as XML, so an Output of
