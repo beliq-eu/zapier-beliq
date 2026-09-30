@@ -1,6 +1,6 @@
 # Zapier beliq connector - implementation roadmap
 
-`status: live, next: [operator] pass 2's in-product check on 1.0.2 (pushed 2026-09-26): branding, connect an account, run each create in a Zap`
+`status: live, next: Pass 3, which waits for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md); Pass 2's in-product check passed on 1.0.2 on 2026-10-01`
 
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
@@ -100,7 +100,7 @@ The original build:
   - D027 asked for `zapier-platform-core` 19.1.0 against the pinned 19.0.0.
     Closed 2026-09-21 by #17, which moved the exact pin to 19.1.0; see §5.
 
-### Pass 2 - Register + push + in-product verification (partly done)
+### Pass 2 - Register + push + in-product verification (done 2026-10-01)
 
 Registered and pushed 2026-09-15. Integration `beliq`, id `246379`, key
 `App246379`, audience global, role employee, category invoices, homepage
@@ -124,34 +124,37 @@ Pass 2 is signed off on `1.0.2`, not `1.0.1`: it is the version Pass 3
 promotes, and its PDF output-field samples (R97 in zapier-beliq#28) can only be
 seen there. Branding does not depend on the version and can happen any time.
 
-Remaining, all of it in a browser at `https://developer.zapier.com` and the Zap
-editor. Use a `blq_test_` key from your own beliq organization, never the shared
-connector CI organization's key: that key should not be stored in Zapier, and
-the sandbox allowance is metered per organization
-(`beliq-types/src/pricing.ts:82`), so a CI key would spend the allowance the
-connector repos' `live` jobs run on.
+The in-product check ran on `1.0.2` on 2026-09-30 and 2026-10-01 (Berlin), in
+the developer dashboard and the Zap editor, with a `blq_test_` key from the
+operator's own beliq organization. Never use the shared connector CI
+organization's key here: it should not be stored in Zapier, and the sandbox
+allowance is metered per organization (`beliq-types/src/pricing.ts:82`), so a
+CI key would spend the allowance the connector repos' `live` jobs run on. The
+test Zap ran Schedule by Zapier, then Generate XML, Validate, Parse and Convert
+on the XML, then Generate PDF, then Email by Zapier.
 
-1. Branding: upload `assets/beliq-logo-1024.png` (1024x1024 PNG) and set the
-   brand color `#fe6019`. There is no CLI for either.
-2. Connect a beliq account. A valid key passes the test (`GET /v1/me`). A wrong
-   key is refused with "The beliq API key is invalid."
-3. Generate Invoice, Output XML, with the prefilled invoice: returns `xml`,
-   `schematronVersion` and `outputEnvelope`.
-4. Generate Invoice, Output PDF: before the test run, the Zap editor already
-   shows File, Filename, Size (bytes) and PDF Kind with sample values (R97).
-   After it, `file` opens as a PDF in a downstream step (email attachment or
-   file upload) and `pdfKind` is `hybrid` or `visualization`.
-5. Validate Invoice on the XML from step 3: `valid` is true.
-6. Parse Invoice on the same XML: returns `format` and the `invoice` fields
-   (number, issue date, currency, gross total).
-7. Convert Invoice on the same XML: `file` opens in a downstream step, and
-   `lostElementsCount` is present.
-8. Turn one of these Zaps on, then run `npx zapier-platform versions` in this
-   repo. Expected: `1.0.2` shows 1 Zap user, which proves a live Zap sits on the
-   new version. The count lags; re-run after about 10 seconds. A step only
-   tested in the editor probably does not count.
-9. `npx zapier-platform logs` shows the runs. It lists `z.request` traffic only
-   (the credential test and file hydration), not the SDK's calls; see §0.
+| # | Check | Observed |
+|---|---|---|
+| 1 | Branding | The logo was already uploaded and matches `assets/beliq-logo-1024.png`. The brand color is not in Integration Settings: it is "Primary color" in Publishing > App details, a section of the App Directory submission form that saves on its own and submits nothing. Saved there as `#fe6019`, with "publicly launched" Yes, "replacement for an existing integration" No, "already managing a public integration on the same API" No, homepage `https://beliq.eu`, API docs `https://docs.beliq.eu`. |
+| 2 | Connect | The operator connected a key; the account shows as "beliq (1.0.2)", auto-numbered, no label. The wrong-key refusal ("The beliq API key is invalid.") was not reported back from the connect dialog, so it is unconfirmed here. The message is thrown in `src/authentication.ts:14` on a 401/403, and no test under `test/` asserts it. |
+| 3 | Generate, XML | XRechnung CII sandbox specimen for `INV-2026-001`, with `contentType` `application/xml`, `schematronVersion` `1.3.16` and `outputEnvelope`. |
+| 4 | Generate, PDF | ZUGFeRD: `file` stashed, `filename` `invoice.pdf`, `contentType` `application/pdf`, `sizeBytes` 38217, `pdfKind` `hybrid`. Email by Zapier attached it and it arrived as `invoice.pdf`, 37.3 KB. The R97 samples show in the data picker (File, Filename `invoice.pdf`, Size 128000, PDF Kind `hybrid`); see §4 for how far they reach. |
+| 5 | Validate | `valid` true, format `cii`, no errors, one info warning `BR-DE-TMP-32` (no delivery date or invoicing period). |
+| 6 | Parse | Format `cii`; number `INV-2026-001`, issue date `2026-01-15`, currency `EUR`, total gross `1190`. |
+| 7 | Convert | CII to UBL, profile EN 16931: `file` stashed, `filename` `invoice.ubl.xml`, `contentType` `application/xml`, `sizeBytes` 4302, `lostElementsCount` 0. Arrived as an email attachment, 4.2 KB. |
+| 8 | Live Zap | The test Zap trimmed to two steps, "beliq 1.0.2 pass 2 check" (Schedule monthly on day 20 at 09:00, then Generate XML), was on from 01:09 to 01:37 CEST on 2026-10-01 and never ran. `zapier-platform validate`, logged in, then counted 8 publishing tasks instead of 11: S001 read "currently has 1" user with live Zaps, and S002, T001 and A001 cleared for `generate_invoice`. `zapier-platform versions` still showed 0 Zap users on `1.0.2` after 15 minutes of polling, so that column lags far longer than seconds; read S001 from `validate` instead. The Zap is off again and stays in the account as a draft. |
+| 9 | Logs | `zapier-platform logs --type=http` lists a `GET /v1/me` per step test and none of the creates' SDK calls, as §0 says. |
+
+Zapier-side facts found on the way, none of them a defect here:
+
+- On the free plan a Zap with more than two steps needs a paid plan to turn on
+  ("This Zap is using 1 Pro feature"). Testing each step in the editor still
+  works. That matters for Pass 3's templates and its per-action live Zaps.
+- Email by Zapier on the free plan sends test emails to the Zapier account's
+  own address, whatever To says. A test that reported "Network Error" still
+  sent its email.
+- The Zapier account is the one the PolyDoc integration lives in: the only
+  contact address the Publishing form offers is `backend+zapier@polydoc.tech`.
 
 ### Pass 3 - Zap templates + App Directory submission (operator)
 - Author Zap templates in the developer dashboard (one per action angle), for
@@ -163,6 +166,14 @@ connector repos' `live` jobs run on.
   connected account, and M005 ("no users match domain": a user on the
   integration needs an email at the homepage's domain, `beliq.eu`; see
   https://docs.zapier.com/platform/publish/integration-checks-reference#M005).
+  The only user today is `backend+zapier@polydoc.tech`, so M005 needs an
+  `@beliq.eu` admin invited under Manage team first; the Publishing form's
+  contact fields only offer team admins.
+- The rest of the Publishing form (Integration readiness, Test account, Contact
+  details, Compliance) is still empty; App details was saved on 2026-10-01.
+- A live Zap per action (S002) on a free Zapier plan means two-step Zaps, one
+  trigger and one beliq action each; the three-step template examples above
+  need a paid plan to turn on.
   Reviewer rules to honor: 5.6 (connection label has no app
   name; none is set), 5.8 (every action description starts with a third-person
   verb: Generates / Validates / Parses / Converts), M002 (dashboard/App Directory
@@ -216,6 +227,13 @@ connector repos' `live` jobs run on.
   2026-09-28). Promoting `1.0.2` ships the older SDK, which works: 0.4.1 and 0.4.2 only add
   invoice fields, and the invoice JSON passes through. Pushing `1.0.3` first ships the current lock,
   but Pass 2's in-product check then has to run again on `1.0.3`.
+- Whether the R97 output-field samples mislead. In the Zap editor's data picker they show even
+  after a real test run: an XML-output Generate step offers File, Filename `invoice.pdf`, Size
+  128000 and PDF Kind `hybrid`, which an XML run never returns, and a PDF run shows Size 128000
+  (the sample) where the run returned 38217. At run time the real values flow, so the risk is a
+  user mapping File from an XML-output step and getting an empty attachment. Samples live in
+  `src/lib/samples.ts` (`generatePdfSample`) and are wired in `src/creates/generateInvoice.ts`.
+  Not acted on: it is how Zapier merges field samples, and dropping them undoes R97.
 
 ## 5. Dependency state, measured 2026-09-21, re-read 2026-09-30
 
@@ -324,3 +342,11 @@ shape on the yarn siblings.
   which still admits the versions alert 14 (`<= 4.1.0`) covers. Once a `pacote` inside
   `zapier-platform-cli` wants `sigstore` 5, the override forces 4.x on it and CI will not notice.
   Drop it then, or as soon as `pacote`'s own floor reaches 4.1.1. xs.
+- The prefilled invoice (`src/creates/generateInvoice.ts`, the `INV-2026-001` default) validates
+  with one info warning, `BR-DE-TMP-32`, because it carries neither a delivery date nor an
+  invoicing period. Adding one gives a clean first Validate run. xs, but it is a code change, so it
+  ships only with a `1.0.3` push, which reopens Pass 2 (§4). Batch it with whatever else `1.0.3`
+  carries.
+- beliq-hq `CONNECTORS-ROADMAP.md`'s Zapier status rows still name `1.0.1` as the pushed version
+  (the "Zapier App Directory" row and the "Zapier | registered" row); it is `1.0.2`. beliq-hq's own
+  fix, xs.
