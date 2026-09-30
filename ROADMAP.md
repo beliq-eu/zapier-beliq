@@ -271,6 +271,15 @@ https://github.com/beliq-eu/zapier-beliq/security/dependabot/29,
 https://github.com/beliq-eu/zapier-beliq/security/dependabot/34,
 https://github.com/beliq-eu/zapier-beliq/security/dependabot/36.
 
+Those three closed when [#34](https://github.com/beliq-eu/zapier-beliq/pull/34) merged (15:35 CEST).
+The scan of that push opened four more, from advisories published 2026-09-29 against versions the
+lock already held: alerts 45, 46 and 47 (`brace-expansion` 5.0.9, 2.1.4 and 1.1.18, patched 5.0.12,
+2.1.7 and 1.1.21, under several `minimatch` majors) and alert 38 (`undici` 6.28.0 under `node-gyp`,
+patched 6.28.1). All dev scope, all inside their consumers' ranges. The lock now holds
+`brace-expansion` 5.0.12, 2.1.7 and 1.1.21 and `undici` 6.29.0, with the runtime tree unchanged.
+The alerts appeared only on that push's scan, about 14 hours after the advisories were
+published, so a re-read of open alerts can miss advisories that already apply.
+
 **The `@sigstore/core` override is gone.** #4 (2026-08-08) added `"@sigstore/core": "^3.2.1"` to
 clear alert 13 (`<= 3.2.0`). Its three consumers under `zapier-platform-cli` > `pacote` now declare
 the floor themselves: `sigstore` 4.1.1 and `@sigstore/verify` 3.1.1 want `^3.2.1`, `@sigstore/sign`
