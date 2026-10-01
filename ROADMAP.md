@@ -1,6 +1,6 @@
 # Zapier beliq connector - implementation roadmap
 
-`status: live, next: Pass 3, which waits for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md); Pass 2's in-product check passed on 1.0.2 on 2026-10-01`
+`status: live, next: [operator] Pass 3 steps A and B (an @beliq.eu admin, then live Zaps for Validate, Parse and Convert and two more users), which submit nothing; steps C and D (Publishing form, promote, Zap templates) wait for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md), read closed on 2026-10-01; Pass 3 was prepared that day`
 
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
@@ -156,28 +156,89 @@ Zapier-side facts found on the way, none of them a defect here:
 - The Zapier account is the one the PolyDoc integration lives in: the only
   contact address the Publishing form offers is `backend+zapier@polydoc.tech`.
 
-### Pass 3 - Zap templates + App Directory submission (operator)
-- Author Zap templates in the developer dashboard (one per action angle), for
-  example: Sheets row -> Generate Invoice -> email the PDF; new file -> Validate
-  Invoice -> branch on `valid`; webhook -> Convert Invoice -> upload.
-- `zapier-platform promote <version>` and submit for App Directory review.
-- Adoption gates (all on the promoted version): 3 distinct users with a live
-  Zap, at least 1 live Zap per action, a successful live run per action, a
-  connected account, and M005 ("no users match domain": a user on the
-  integration needs an email at the homepage's domain, `beliq.eu`; see
-  https://docs.zapier.com/platform/publish/integration-checks-reference#M005).
-  The only user today is `backend+zapier@polydoc.tech`, so M005 needs an
-  `@beliq.eu` admin invited under Manage team first; the Publishing form's
-  contact fields only offer team admins.
-- The rest of the Publishing form (Integration readiness, Test account, Contact
-  details, Compliance) is still empty; App details was saved on 2026-10-01.
-- A live Zap per action (S002) on a free Zapier plan means two-step Zaps, one
-  trigger and one beliq action each; the three-step template examples above
-  need a paid plan to turn on.
-  Reviewer rules to honor: 5.6 (connection label has no app
-  name; none is set), 5.8 (every action description starts with a third-person
-  verb: Generates / Validates / Parses / Converts), M002 (dashboard/App Directory
-  description starts "beliq is a" and never says "Zapier").
+### Pass 3 - App Directory submission, then Zap templates (operator)
+
+State on 2026-10-01: prepared, nothing submitted. The API-stability gate was
+read that day and is closed (beliq-hq `CONNECTORS-ROADMAP.md`, "Store listings
+wait for a stable API": Zapier going public is held until beta exit or 4
+straight weeks with no breaking `/v1` change). The operator chose to prepare
+now and promote later. Steps A and B submit nothing and can happen while the
+gate is closed. Steps C and D wait for it.
+
+The order below replaces the earlier "templates, then promote". Zapier's docs,
+read 2026-10-01, say a Zap template can only use a public integration
+(https://docs.zapier.com/platform/publish/zap-templates), so templates come
+last.
+
+**A. An `@beliq.eu` admin (clears M005 and requirement 7.2).** One admin on the
+integration's team needs an email at the homepage's domain; a collaborator does
+not count
+(https://docs.zapier.com/platform/publish/integration-checks-reference#M005).
+The only team member today is `backend+zapier@polydoc.tech`.
+
+1. Have a Zapier account under an `@beliq.eu` address. Without one, the invite
+   asks for sign-up first.
+2. In https://developer.zapier.com, open the beliq integration, then Manage >
+   Manage Team > Invite Team Member. Enter the address, role **Admin**, Send
+   Invite.
+3. Accept from the emailed invitation. Existing admins get a notice.
+4. Check: `npx zapier-platform validate`, logged in, no longer lists M005. The
+   Publishing form's contact fields then offer the new admin.
+
+**B. Adoption checks on `1.0.2` (S001, S002, T001, A001).** Counted by
+`validate` on 2026-10-01: 8 publishing tasks open, with S002, T001 and A001
+cleared for `generate_invoice` and S001 at 1 of 3 users.
+
+- S002 and T001: one live Zap per action with one successful run each. On the
+  free plan that is a two-step Zap: Schedule by Zapier, then the beliq action.
+  Validate, Parse and Convert take the invoice as pasted XML in Document Text,
+  so no file step is needed. Three Zaps are missing: `validate_invoice`,
+  `parse_invoice`, `convert_invoice`. The Generate Zap from Pass 2 row 8 is off
+  and never ran, so check with `validate` whether it still counts.
+- S001: 3 distinct Zapier users, each with a live Zap that has run. Two more
+  accounts are needed, invited as testers under Manage > Sharing.
+- Use a `blq_test_` key from the operator's own organization, as in Pass 2,
+  never the connector CI key.
+- "Recent history" is Zapier's wording for how fresh a run must be and it gives
+  no number. If the gate opens weeks from now, expect to run the Zaps again.
+
+**C. The Publishing form, promote, submit (waits for the gate).** The form sits
+under Publish in the integration's home. App details was saved on 2026-10-01
+(Pass 2, row 1). Its other four sections are empty, and their field labels have
+not been read: Zapier's docs do not list them. What each one has to satisfy,
+from https://docs.zapier.com/platform/publish/integration-publishing-requirements:
+
+| Section | What to have ready |
+|---|---|
+| Integration readiness | Every action tested in a Zap with a successful run (5.3, step B). Production endpoints only (5.4): the connector calls `https://api.beliq.eu` with either key type. Clear, current API docs (5.2): `https://docs.beliq.eu`. |
+| Test account | A beliq account under `integration-testing@zapier.com` that never expires, whose password Zapier staff can change, with every needed feature on and no trial limits (7.1). It does not exist yet. See §4 for which key type it hands the reviewer. |
+| Contact details | The `@beliq.eu` admin from step A. |
+| Compliance | Not a competitor, no payment processing, no sensitive personal data, HTTPS only, no hardcoded credentials (1.2, 1.4, 4.1 to 4.3). All true today; the connector creates invoice documents and moves no money. |
+
+Then `npx zapier-platform validate` must count 0 publishing tasks, and
+`npx zapier-platform promote 1.0.2` (or the version §4 settles on) starts the
+review. Run it from a `git clone --shared`, never a worktree, if it comes with a
+push: `zapier-platform push` ships the worktree's `.git` pointer file (§6).
+Zapier says it answers within 1 week. The version shows as Pending and the
+integration stays Private until approval, then Beta for 90 days, then public.
+
+Rules already met: 5.6 (no connection label), 5.7 (all text in English), 5.8
+(action descriptions start Generates / Validates / Parses / Converts), 6.2 and
+M002 (the description starts "beliq is an", never says "Zapier", and is 132
+characters against a 140 limit).
+
+Requirement 5.1 says the app "has been fully launched to the public and isn't
+an invite-only or 'beta' app". App details answers "publicly launched" with
+Yes. That holds on the public pages: `https://beliq.eu`,
+`https://beliq.eu/pricing` and `https://docs.beliq.eu` did not contain the word
+"beta" on 2026-10-01. beliq-hq calls the product "in beta"
+internally, see §4.
+
+**D. Zap templates (after approval).** Five drafts with titles, steps, mappings
+and descriptions are in `examples/README.md`. Paths, Code, Webhooks, Looping and
+Formatter by Zapier are banned in templates, so the earlier "webhook to Convert"
+and "branch on `valid`" angles were dropped or turned into a filter. Submit four
+first, one per action. Template review takes up to 2 weeks.
 
 ---
 
@@ -234,6 +295,20 @@ Zapier-side facts found on the way, none of them a defect here:
   user mapping File from an XML-output step and getting an empty attachment. Samples live in
   `src/lib/samples.ts` (`generatePdfSample`) and are wired in `src/creates/generateInvoice.ts`.
   Not acted on: it is how Zapier merges field samples, and dropping them undoes R97.
+
+- Whether the gate's 4-week route can open Zapier at all. Zapier's requirement 5.1 refuses a
+  "beta" app, and the gate has two routes: beta exit, or 4 clean weeks while still in beta. The
+  public pages do not say "beta" (§2, Pass 3 step C), so the second route is defensible, but the
+  operator should decide it knowingly before submitting, since the form already answers "publicly
+  launched: Yes".
+- Which key the review test account hands Zapier. The account under
+  `integration-testing@zapier.com` has no plan, so a live key gets the free tier's 20 documents a
+  month and a reviewer testing four actions can run out. A `blq_test_` key has the sandbox
+  allowance but stamps every output as a specimen (comment in XML, watermark on PDF), which a
+  reviewer may read as a trial limit (7.1). A plan or quota override on that account avoids both.
+- Whether a Generate Invoice template can pass review. The invoice is one JSON text field, so a
+  template maps fields inside JSON text and cannot map line items. `examples/README.md`, "Why
+  Generate is the weak one". If review refuses it, the fix is separate input fields, a new version.
 
 ## 5. Dependency state, measured 2026-09-21, re-read 2026-09-30
 
@@ -350,3 +425,8 @@ shape on the yarn siblings.
 - beliq-hq `CONNECTORS-ROADMAP.md`'s Zapier status rows still name `1.0.1` as the pushed version
   (the "Zapier App Directory" row and the "Zapier | registered" row); it is `1.0.2`. beliq-hq's own
   fix, xs.
+- beliq-hq `CONNECTORS-ROADMAP.md`, "Store listings wait for a stable API", does not know two
+  things found on 2026-10-01: Zapier's requirement 5.1 refuses a "beta" app, which bears on the
+  gate's 4-week route (§4), and Zap templates need a public integration, so they are not a
+  pre-gate task. beliq-hq's own edit, xs. Not made here: another session had uncommitted work in
+  that checkout.
