@@ -1,6 +1,6 @@
 # Zapier beliq connector - implementation roadmap
 
-`status: live, next: [operator] Pass 3 step B (a live Zap with a successful run for each of the four actions, and three users with a live Zap), which submits nothing; step A (an @beliq.eu admin) is done, M005 cleared on 2026-10-01; steps C and D (Publishing form, promote, Zap templates) wait for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md), read closed on 2026-10-01; Pass 3 was prepared that day`
+`status: live, next: [operator] the rest of Pass 3 step B: two more Zapier users, each with a live Zap that has run (S001 is at 1 of 3), which submits nothing; step A (an @beliq.eu admin) and the four per-action Zaps are done, M005, S002 and T001 cleared on 2026-10-01; steps C and D (Publishing form, promote, Zap templates) wait for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md), read closed on 2026-10-01; Pass 3 was prepared that day`
 
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
@@ -187,28 +187,40 @@ done, for the record:
 4. Check: `npx zapier-platform validate`, logged in, no longer lists M005. The
    Publishing form's contact fields then offer the new admin.
 
-**B. Adoption checks on `1.0.2` (S001, S002, T001, A001).** Counted by
-`npm run validate`, logged in, after step A on 2026-10-01: 8 publishing tasks
-open. They are S002 for all four actions, T001 for `validate_invoice`,
-`parse_invoice` and `convert_invoice`, and S001 at 0 of 3 users. T001 for
-`generate_invoice` and A001 stay cleared.
+**B. Adoption checks on `1.0.2` (S001, S002, T001, A001).** S002, T001 and
+A001 are cleared for all four actions since 2026-10-01. One task is left:
+S001, at 1 of 3 users. `npm run validate`, logged in, at 12:53 CEST that day:
+44 checks passed, 1 publishing task. Before the Zaps it was 8 tasks: S002 for
+all four actions, T001 for three, and S001 at 0.
 
-- A Zap that is switched off stops counting. While the Pass 2 test Zap was on
-  (row 8), S002 for `generate_invoice` was cleared and S001 read 1 user. With
-  it off, both are open again. So the Zaps have to stay on until review.
-- S002 and T001: one live Zap per action with one successful run each. On the
-  free plan that is a two-step Zap: Schedule by Zapier, then the beliq action.
-  Validate, Parse and Convert take the invoice as pasted XML in Document Text,
-  so no file step is needed. Four Zaps are needed: the Pass 2 Generate draft
-  turned back on, plus `validate_invoice`, `parse_invoice` and
-  `convert_invoice`.
-- S001: 3 distinct Zapier users, each with a live Zap that has run. The
-  operator's own account counts once its Zaps are on, so two more accounts are
-  needed, invited as testers under Manage > Sharing.
-- Use a `blq_test_` key from the operator's own organization, as in Pass 2,
-  never the connector CI key.
-- "Recent history" is Zapier's wording for how fresh a run must be and it gives
-  no number. If the gate opens weeks from now, expect to run the Zaps again.
+The four Zaps live in the Zapier account of `backend+zapier@polydoc.tech`, on
+the "beliq (1.0.2)" connection from Pass 2, which holds a `blq_test_` key from
+the operator's own organization:
+
+| Zap | Id | First run |
+|---|---|---|
+| beliq 1.0.2 adoption: Generate Invoice | 381942619 | 2026-10-01 12:45 CEST, 1 task |
+| beliq 1.0.2 adoption: Validate Invoice | 382044981 | 2026-10-01 12:45 CEST, 1 task |
+| beliq 1.0.2 adoption: Parse Invoice | 382044988 | 2026-10-01 12:45 CEST, 1 task |
+| beliq 1.0.2 adoption: Convert Invoice | 382044991 | 2026-10-01 12:45 CEST, 1 task |
+
+- Each is Schedule by Zapier (Every Month, day 1, 12:45, Europe/Berlin), then
+  the beliq action. That is one run a month per Zap, 4 sandbox calls a month,
+  and it keeps a run in "recent history", Zapier's wording for how fresh a run
+  must be, for which it gives no number.
+- **Leave them on.** A Zap that is switched off stops counting: with the Pass 2
+  test Zap off, S002 for `generate_invoice` reopened and S001 fell from 1 user
+  to 0.
+- Generate is the Pass 2 test Zap, renamed. The other three are copies of it
+  with the action changed. Validate and Parse hold the official French
+  EN 16931 CII sample as pasted XML in Document Text
+  (`beliq-engine/third-party/specs/france/xp-z12-012-1.4.0/annexe-b/factures/UC1_F202500003_00-INV_20250701_EN16931_FX_CII_Commentee.xml`,
+  comments stripped). Convert holds the same XML without its BT-23 element,
+  see §6.
+- S001 is what is left: 3 distinct Zapier users, each with a live Zap that has
+  run. This account is one. Two more accounts are needed, invited as testers
+  under Manage > Sharing, each with one two-step Zap like the ones above and
+  its own beliq key. Never the connector CI key.
 
 **C. The Publishing form, promote, submit (waits for the gate).** The form sits
 under Publish in the integration's home. App details was saved on 2026-10-01
@@ -438,3 +450,11 @@ shape on the yarn siblings.
   gate's 4-week route (§4), and Zap templates need a public integration, so they are not a
   pre-gate task. beliq-hq's own edit, xs. Not made here: another session had uncommitted work in
   that checkout.
+- Convert Invoice cannot accept a French overlay loss. Converting a CII invoice that carries the
+  French process code (BT-23, for example `S1`) to UBL fails with `CONVERSION_LOSSY_FAILCLOSED`:
+  UBL has no place for the code, and the API proceeds only with `options.dropFranceCtcOverlay=true`.
+  `src/creates/convertInvoice.ts` has no field for that option, so a Zapier user with a French
+  invoice is stuck. Found 2026-10-01 in the Convert Zap's editor test (§2, Pass 3 step B), which
+  now runs on the sample with BT-23 removed. The fix is a boolean input field passed through to
+  the SDK, s, and it ships only with a `1.0.3` push, which reopens Pass 2 (§4). Check first that
+  `@beliq/sdk` exposes the option.
