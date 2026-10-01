@@ -1,6 +1,6 @@
 # Zapier beliq connector - implementation roadmap
 
-`status: live, next: [operator] Pass 3 steps A and B (an @beliq.eu admin, then live Zaps for Validate, Parse and Convert and two more users), which submit nothing; steps C and D (Publishing form, promote, Zap templates) wait for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md), read closed on 2026-10-01; Pass 3 was prepared that day`
+`status: live, next: [operator] Pass 3 step B (a live Zap with a successful run for each of the four actions, and three users with a live Zap), which submits nothing; step A (an @beliq.eu admin) is done, M005 cleared on 2026-10-01; steps C and D (Publishing form, promote, Zap templates) wait for beliq-hq's API-stability gate ("Store listings wait for a stable API" in CONNECTORS-ROADMAP.md), read closed on 2026-10-01; Pass 3 was prepared that day`
 
 Living roadmap for the Zapier integration, a beliq clone of `zapier-polydoc`
 backed by the published `@beliq/sdk`. Standalone repo at
@@ -170,11 +170,13 @@ read 2026-10-01, say a Zap template can only use a public integration
 (https://docs.zapier.com/platform/publish/zap-templates), so templates come
 last.
 
-**A. An `@beliq.eu` admin (clears M005 and requirement 7.2).** One admin on the
-integration's team needs an email at the homepage's domain; a collaborator does
-not count
+**A. An `@beliq.eu` admin (clears M005 and requirement 7.2). Done 2026-10-01.**
+The operator added the admin, and `npm run validate`, logged in, no longer
+lists M005 (42 checks passed, up from 40). One admin on the integration's team
+needs an email at the homepage's domain; a collaborator does not count
 (https://docs.zapier.com/platform/publish/integration-checks-reference#M005).
-The only team member today is `backend+zapier@polydoc.tech`.
+Until then the only team member was `backend+zapier@polydoc.tech`. How it is
+done, for the record:
 
 1. Have a Zapier account under an `@beliq.eu` address. Without one, the invite
    asks for sign-up first.
@@ -186,17 +188,23 @@ The only team member today is `backend+zapier@polydoc.tech`.
    Publishing form's contact fields then offer the new admin.
 
 **B. Adoption checks on `1.0.2` (S001, S002, T001, A001).** Counted by
-`validate` on 2026-10-01: 8 publishing tasks open, with S002, T001 and A001
-cleared for `generate_invoice` and S001 at 1 of 3 users.
+`npm run validate`, logged in, after step A on 2026-10-01: 8 publishing tasks
+open. They are S002 for all four actions, T001 for `validate_invoice`,
+`parse_invoice` and `convert_invoice`, and S001 at 0 of 3 users. T001 for
+`generate_invoice` and A001 stay cleared.
 
+- A Zap that is switched off stops counting. While the Pass 2 test Zap was on
+  (row 8), S002 for `generate_invoice` was cleared and S001 read 1 user. With
+  it off, both are open again. So the Zaps have to stay on until review.
 - S002 and T001: one live Zap per action with one successful run each. On the
   free plan that is a two-step Zap: Schedule by Zapier, then the beliq action.
   Validate, Parse and Convert take the invoice as pasted XML in Document Text,
-  so no file step is needed. Three Zaps are missing: `validate_invoice`,
-  `parse_invoice`, `convert_invoice`. The Generate Zap from Pass 2 row 8 is off
-  and never ran, so check with `validate` whether it still counts.
-- S001: 3 distinct Zapier users, each with a live Zap that has run. Two more
-  accounts are needed, invited as testers under Manage > Sharing.
+  so no file step is needed. Four Zaps are needed: the Pass 2 Generate draft
+  turned back on, plus `validate_invoice`, `parse_invoice` and
+  `convert_invoice`.
+- S001: 3 distinct Zapier users, each with a live Zap that has run. The
+  operator's own account counts once its Zaps are on, so two more accounts are
+  needed, invited as testers under Manage > Sharing.
 - Use a `blq_test_` key from the operator's own organization, as in Pass 2,
   never the connector CI key.
 - "Recent history" is Zapier's wording for how fresh a run must be and it gives
