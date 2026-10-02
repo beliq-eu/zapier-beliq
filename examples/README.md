@@ -3,7 +3,7 @@
 Zap templates are built in Zapier's template creator
 (https://zapier.com/webintent/create-template, listed afterwards at
 https://developer.zapier.com/zap-templates), not committed as JSON. This file
-holds the text to paste there. It is step D of Pass 3 in `../ROADMAP.md`.
+holds the text to paste there.
 
 Drafted 2026-10-01 against
 https://docs.zapier.com/platform/publish/zap-templates. None of these exists on
@@ -109,4 +109,3 @@ required fields. Google Sheets, the angle this file used to list, is worse:
 its columns are user-added and cannot be mapped in a template. Whether drafts 4
 and 5 pass review is not known. If they do not, Generate needs separate input
 fields for the common invoice parts, which is a code change and a new version.
-`../ROADMAP.md` §4 carries this.
