@@ -109,4 +109,3 @@ required fields. Google Sheets, the angle this file used to list, is worse:
 its columns are user-added and cannot be mapped in a template. Whether drafts 4
 and 5 pass review is not known. If they do not, Generate needs separate input
 fields for the common invoice parts, which is a code change and a new version.
-
