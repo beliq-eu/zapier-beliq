@@ -30,7 +30,14 @@ A returned **File** is ready to attach or upload in a downstream Gmail, Drive, o
 
 ## Public format coverage
 
-The dropdowns list the formats beliq offers publicly today. The API can accept additional provisional formats; those are reachable through the underlying API but are intentionally kept out of the UI.
+The dropdowns carry every format the API accepts for each operation, which is
+also every format `GET https://api.beliq.eu/v1/rulesets` publishes. Each wears
+a badge saying how deep its check goes: XRechnung, ZUGFeRD, Factur-X and
+Peppol BIS are Authority-checked, and FatturaPA, Facturae, e-SLOG and
+KSeF FA(3) are Schema-checked, meaning structure only, because their authority
+publishes no machine-readable business rules. The Convert dropdowns are
+shorter than the Generate one because the API's own convert enums are: no
+national format is a conversion target.
 
 ## Development
 

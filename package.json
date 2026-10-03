@@ -43,7 +43,7 @@
     "scrub:check": "bash scripts/scrub-check.sh"
   },
   "dependencies": {
-    "@beliq/sdk": "^0.4.0",
+    "@beliq/sdk": "^0.4.5",
     "zapier-platform-core": "19.1.0"
   },
   "overrides": {
