@@ -48,7 +48,7 @@
   },
   "overrides": {
     "form-data": "^4.0.6",
-    "ip-address": "^10.5.1",
+    "ip-address": "^10.7.1",
     "sigstore": "^4.1.1",
     "adm-zip": "^0.6.1",
     "diff": "^8.0.3",
