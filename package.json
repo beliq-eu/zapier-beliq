@@ -54,7 +54,8 @@
     "diff": "^8.0.3",
     "tar": "^7.5.21",
     "tmp": "^0.2.7",
-    "yeoman-environment": "^6.0.1"
+    "yeoman-environment": "^6.0.1",
+    "simple-git": "^4.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
