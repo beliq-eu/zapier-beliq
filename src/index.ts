@@ -5,6 +5,9 @@ import validateInvoice from './creates/validateInvoice';
 import parseInvoice from './creates/parseInvoice';
 import convertInvoice from './creates/convertInvoice';
 
+// An `import` would put `package.json` into the program, above `rootDir: src`,
+// which is what shapes `dist/`.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { version } = require('../package.json');
 
 const App = {

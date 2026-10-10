@@ -33,6 +33,9 @@ jobs:
       - name: Typecheck (src and tests)
         run: npm run typecheck
 
+      - name: Lint
+        run: npm run lint
+
       # Schema validation plus Zapier's server-side integration checks. With no
       # login the CLI sends the app definition to Zapier's check endpoint
       # anonymously, so this needs no secret; a logged-in run against the

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import generateInvoice from '../src/creates/generateInvoice';
+import { prefilledInvoice } from './prefilled-invoice';
 
 // The prefilled Invoice Data is what a user's first run sends. On Peppol BIS a
 // GLN whose GS1 check digit is wrong is fatal four times over before the
@@ -17,12 +17,7 @@ function isValidGln(value: string): boolean {
   const dataLength = value.length - 1;
   const reversed = [...value.slice(0, dataLength)].map(Number).reverse();
   const weighted = reversed.reduce((sum, d, i) => sum + d * (1 + (((i + 1) % 2) * 2)), 0);
-  return (10 - (weighted % 10)) % 10 === Number(value[dataLength]);
-}
-
-function prefilledInvoice(): Record<string, any> {
-  const field = (generateInvoice.operation.inputFields as any[]).find((f) => f.key === 'invoice');
-  return JSON.parse(field.default as string);
+  return (10 - (weighted % 10)) % 10 === Number(value.charAt(dataLength));
 }
 
 describe('the GS1 rule the sample has to satisfy', () => {
@@ -37,8 +32,11 @@ describe('the GS1 rule the sample has to satisfy', () => {
 describe('prefilled invoice', () => {
   it('gives both parties a GLN that passes PEPPOL-COMMON-R040', () => {
     const invoice = prefilledInvoice();
-    for (const party of ['seller', 'buyer'] as const) {
-      const peppol = invoice[party].peppol;
+    for (const [party, peppol] of [
+      ['seller', invoice.seller.peppol],
+      ['buyer', invoice.buyer.peppol],
+    ] as const) {
+      if (!peppol) throw new Error(`${party}.peppol is missing`);
       expect(peppol.schemeId, `${party}.peppol.schemeId`).toBe('0088');
       expect(isValidGln(peppol.id), `${party}.peppol.id ${peppol.id} must be a valid GLN`).toBe(true);
     }
@@ -46,7 +44,10 @@ describe('prefilled invoice', () => {
 
   it('gives the two parties distinct electronic addresses', () => {
     const invoice = prefilledInvoice();
-    expect(invoice.seller.peppol.id).not.toBe(invoice.buyer.peppol.id);
+    const seller = invoice.seller.peppol;
+    const buyer = invoice.buyer.peppol;
+    if (!seller || !buyer) throw new Error('a party has no peppol address');
+    expect(seller.id).not.toBe(buyer.id);
   });
 });
 
@@ -69,8 +70,8 @@ describe('the fields the XRechnung CIUS requires', () => {
     expect(invoice.taxSummary?.length).toBeGreaterThan(0);
     for (const line of invoice.lines) {
       expect(
-        invoice.taxSummary.some(
-          (t: any) => t.vatCategoryCode === line.vatCategoryCode && t.vatRate === line.vatRate,
+        invoice.taxSummary?.some(
+          (t) => t.vatCategoryCode === line.vatCategoryCode && t.vatRate === line.vatRate,
         ),
       ).toBe(true);
     }
@@ -81,8 +82,9 @@ describe('the fields the XRechnung CIUS requires', () => {
   });
 
   it('states totals consistent with its lines (BR-CO-13, BR-CO-15)', () => {
-    const net = invoice.lines.reduce((sum: number, l: any) => sum + l.lineTotal, 0);
-    const tax = invoice.taxSummary.reduce((sum: number, t: any) => sum + t.taxAmount, 0);
+    if (!invoice.taxSummary) throw new Error('taxSummary is missing');
+    const net = invoice.lines.reduce((sum, l) => sum + l.lineTotal, 0);
+    const tax = invoice.taxSummary.reduce((sum, t) => sum + t.taxAmount, 0);
     expect(invoice.totalNetAmount).toBe(net);
     expect(invoice.totalTaxAmount).toBe(tax);
     expect(invoice.totalGrossAmount).toBe(net + tax);
