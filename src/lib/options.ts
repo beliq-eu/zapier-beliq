@@ -14,7 +14,7 @@ import {
 // eight standards, the four national XSD ones included; convert offers fewer
 // because the API's own convert enums do. GET /v1/rulesets carries the badge
 // saying how deep each format's check goes. Labels here are cosmetic only.
-const LABELS: Record<string, string> = {
+const LABELS = new Map(Object.entries({
   auto: 'Auto-detect',
   cii: 'CII',
   ubl: 'UBL',
@@ -30,18 +30,14 @@ const LABELS: Record<string, string> = {
   en16931: 'EN 16931',
   extended: 'EXTENDED',
   'extended-ctc-fr': 'EXTENDED CTC FR',
-};
+}));
 
 /**
  * Turn a LIVE_* value list into a Zapier `choices` map: `{ value: label }`.
  * Zapier renders the label in the dropdown and stores the value.
  */
 export function toChoices(values: readonly string[]): Record<string, string> {
-  const choices: Record<string, string> = {};
-  for (const value of values) {
-    choices[value] = LABELS[value] ?? value;
-  }
-  return choices;
+  return Object.fromEntries(values.map((value) => [value, LABELS.get(value) ?? value]));
 }
 
 // Curated profile presets (e.g. NLCIUS = Peppol BIS + the netherlands-nlcius

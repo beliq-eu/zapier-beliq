@@ -317,7 +317,7 @@ describe('generate_invoice output fields', () => {
   // field, or the editor offers it with no value.
   const outputFields: { key: string; label?: string; sample?: unknown }[] =
     generateInvoice.operation.outputFields;
-  const operationSample: Record<string, unknown> = generateInvoice.operation.sample;
+  const operationSample = new Map<string, unknown>(Object.entries(generateInvoice.operation.sample));
 
   async function expectEveryReturnedKeyDeclaredAndSampled(
     inputData: Record<string, unknown>,
@@ -330,7 +330,7 @@ describe('generate_invoice output fields', () => {
     for (const [key, returned] of Object.entries(result)) {
       const field = outputFields.find((f) => f.key === key);
       expect(field?.label, `${key} is declared in outputFields with a label`).toBeTruthy();
-      const shown = key in operationSample ? operationSample[key] : field?.sample;
+      const shown = operationSample.has(key) ? operationSample.get(key) : field?.sample;
       expect(shown, `${key} has a sample value`).toBeDefined();
       if (returned !== null) {
         expect(typeof shown, `${key} sample has the type a run returns`).toBe(typeof returned);

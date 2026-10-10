@@ -45,6 +45,7 @@ national format is a conversion target.
 npm install
 npm run build        # tsc -> dist/
 npm run typecheck    # type-check src/ and test/, emits nothing
+npm run lint         # ESLint over src/, test/ and the root files
 npm test             # unit tests (field-to-SDK mapping, no network)
 npm run scrub:check  # fail if an em-dash slipped into a user-facing string
 npm run validate     # schema + Zapier's integration checks, no login needed

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { Beliq } from '@beliq/sdk';
-import generateInvoice from '../src/creates/generateInvoice';
+import { prefilledInvoice } from './prefilled-invoice';
 
 // Live smoke test against the real beliq API. Skipped unless BELIQ_API_KEY is
 // set. It drives the SDK directly the same way the creates do, which validates
@@ -9,11 +9,7 @@ import generateInvoice from '../src/creates/generateInvoice';
 // during the push/connect step, not here.
 const API_KEY = process.env.BELIQ_API_KEY;
 
-// The prefilled Invoice Data is what a user's first run sends, so the smoke
-// drives that exact object rather than a second copy that can drift from it.
-const sampleInvoice = JSON.parse(
-  ((generateInvoice.operation.inputFields as any[]).find((f) => f.key === 'invoice')!.default) as string,
-);
+const sampleInvoice = prefilledInvoice();
 
 describe.skipIf(!API_KEY)('beliq live API', () => {
   let client: Beliq;
