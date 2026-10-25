@@ -1,0 +1,100 @@
+{
+  "format": "cii",
+  "invoice": {
+    "lines": [
+      {
+        "description": "Consulting services",
+        "quantity": 10,
+        "unitCode": "HUR",
+        "unitPrice": 100,
+        "lineTotal": 1000,
+        "vatRate": 19,
+        "vatCategoryCode": "S"
+      }
+    ],
+    "number": "INV-2026-001",
+    "issueDate": "2026-01-15",
+    "currencyCode": "EUR",
+    "documentType": "invoice",
+    "typeCode": "380",
+    "buyerReference": "991-12345-67",
+    "seller": {
+      "name": "Seller GmbH",
+      "vatId": "DE123456789",
+      "address": {
+        "street": "Hauptstrasse 1",
+        "city": "Berlin",
+        "postalCode": "10115",
+        "countryCode": "DE"
+      }
+    },
+    "buyer": {
+      "name": "Buyer SARL",
+      "vatId": "FR12345678901",
+      "address": {
+        "street": "Rue de la Paix 2",
+        "city": "Paris",
+        "postalCode": "75002",
+        "countryCode": "FR"
+      }
+    },
+    "totalNetAmount": 1000,
+    "totalTaxAmount": 190,
+    "totalGrossAmount": 1190
+  },
+  "warnings": [
+    {
+      "code": "PARSE_NOT_RETURNED",
+      "message": "The document holds elements that this response does not return. elements lists each one by its path, with the number of times it occurs. terms names these EN 16931 business groups when one is among them: BG-3, BG-16, BG-20, BG-21, BG-23, BG-27, BG-28, BG-32. Attributes of an element that was read are not listed.",
+      "terms": [
+        "BG-16",
+        "BG-23"
+      ],
+      "elements": [
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:BuyerTradeParty/ram:URIUniversalCommunication",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:DefinedTradeContact",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:URIUniversalCommunication",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:ApplicableTradeTax",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradePaymentTerms",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:DuePayableAmount",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:TaxBasisTotalAmount",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementPaymentMeans",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:IncludedSupplyChainTradeLineItem/ram:AssociatedDocumentLineDocument",
+          "count": 1
+        },
+        {
+          "path": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:IncludedSupplyChainTradeLineItem/ram:SpecifiedLineTradeSettlement/ram:ApplicableTradeTax/ram:TypeCode",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "profileDetected": "xrechnung",
+  "profileUrn": "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
+  "businessProcessId": "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0"
+}

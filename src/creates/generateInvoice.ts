@@ -10,6 +10,7 @@ import {
   usableProfile,
 } from '../lib/options';
 import { generatePdfSample, generateXmlSample } from '../lib/samples';
+import { VERDICT_OUTPUT_FIELDS, verdictOutput, type VerdictOutput } from '../lib/verdict';
 
 // EN 16931-valid default: dueDate (rule BR-CO-25), seller taxId for VAT category
 // S, a taxSummary, and consistent totals (net + tax = gross). Generates as-is so
@@ -112,7 +113,7 @@ const inputFields: PlainInputField[] = [
     type: 'boolean',
     default: 'true',
     helpText:
-      'Validate the generated document before returning it, and fail rather than return an invalid one.',
+      'Validate the generated document before returning it, and fail rather than return an invalid one. Off, nothing checks it and Summary says NOT VALIDATED.',
   },
 ];
 
@@ -160,6 +161,9 @@ const perform = async (z: ZObject, bundle: Bundle) => {
   }
   const verify = bool(input.verify);
   if (verify !== undefined) generateInput.verify = verify;
+  // The JSON envelope is the only answer that carries the verdict's check
+  // depth, and the API does the same work for either shape.
+  generateInput.seal = true;
 
   const client = createClient(bundle.authData as BeliqAuthData);
   let result;
@@ -169,6 +173,9 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     throw mapError(error);
   }
 
+  const verdict: Partial<VerdictOutput> = result.validationResult
+    ? verdictOutput(result.validationResult)
+    : {};
   if (output === 'pdf') {
     const filename = 'invoice.pdf';
     const contentType = result.contentType.split(';')[0].trim() || 'application/pdf';
@@ -179,6 +186,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
       contentType,
       sizeBytes: result.bytes.length,
       pdfKind: result.meta.pdfKind ?? null,
+      ...verdict,
     };
   }
 
@@ -186,7 +194,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     xml: result.xml,
     contentType: result.contentType.split(';')[0].trim() || 'application/xml',
     schematronVersion: result.meta.schematronVersion ?? null,
-    outputEnvelope: result.meta.outputEnvelope ?? null,
+    ...verdict,
   };
 };
 
@@ -195,7 +203,8 @@ export default {
   noun: 'Invoice',
   display: {
     label: 'Generate Invoice',
-    description: 'Generates an EN 16931 e-invoice as XML or a hybrid PDF/A-3.',
+    description:
+      'Generates an e-invoice from EN 16931 invoice data, as XML or a hybrid PDF/A-3, with the verdict and the check depth the API states.',
   },
   operation: {
     inputFields,
@@ -213,8 +222,8 @@ export default {
         sample: generatePdfSample.sizeBytes,
       },
       { key: 'schematronVersion', label: 'Schematron Version' },
-      { key: 'outputEnvelope', label: 'Output Envelope' },
       { key: 'pdfKind', label: 'PDF Kind', sample: generatePdfSample.pdfKind },
+      ...VERDICT_OUTPUT_FIELDS,
     ],
   },
 };

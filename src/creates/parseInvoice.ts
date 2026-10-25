@@ -46,18 +46,25 @@ export default {
   noun: 'Invoice Data',
   display: {
     label: 'Parse Invoice',
-    description: 'Parses an e-invoice document into structured fields.',
+    description:
+      'Parses an e-invoice document into structured fields. Its warnings name what the document holds that the answer does not return.',
   },
   operation: {
     inputFields,
     perform,
     sample: parseSample,
+    // The API returns an invoice field only when the parser read a value for
+    // it, and puts nothing in the place of one it did not, so each label says so.
     outputFields: [
       { key: 'format', label: 'Format' },
-      { key: 'invoice__number', label: 'Invoice Number' },
-      { key: 'invoice__issueDate', label: 'Issue Date' },
-      { key: 'invoice__currencyCode', label: 'Currency' },
-      { key: 'invoice__totalGrossAmount', label: 'Total Gross Amount', type: 'number' },
+      { key: 'invoice__number', label: 'Invoice Number (absent if not read)' },
+      { key: 'invoice__issueDate', label: 'Issue Date (absent if not read)' },
+      { key: 'invoice__currencyCode', label: 'Currency (absent if not read)' },
+      {
+        key: 'invoice__totalGrossAmount',
+        label: 'Total Gross Amount (absent if not read)',
+        type: 'number',
+      },
     ],
   },
 };
