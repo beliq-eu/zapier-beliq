@@ -13,7 +13,7 @@ Zapier yet.
 
 - **Templates need a public integration.** "Zap templates do not currently
   support private integrations", and a template cannot use a version that is not
-  the promoted one. So no template can be created until `1.0.2` (or its
+  the promoted one. So no template can be created until `1.0.3` (or its
   successor) has passed App Directory review.
 - **Banned steps:** Paths, Code, Webhooks, Looping and Formatter by Zapier. That
   rules out two of the three angles this file used to list: "webhook to Convert
@@ -54,10 +54,11 @@ pages. Confirm each one in the editor before submitting.
 
 - **Title:** Send Slack messages for new Google Drive e-invoices that fail beliq validation
 - **Steps:** Google Drive, New File in Folder. beliq, Validate Invoice. Filter
-  by Zapier, continue only if Valid is false. Slack, Send Channel Message.
+  by Zapier, continue only if Valid is false or France CTC Blocking Rule IDs
+  exists. Slack, Send Channel Message.
 - **Mapping:** Document File = File. Message text = the Drive file's name, plus
-  Format and Schematron Version from the beliq step.
-- **Description:** An e-invoice that breaks EN 16931 or a national rule is
+  Summary from the beliq step, which names the check depth of the verdict.
+- **Description:** An e-invoice that fails the rules of its format is
   rejected by the recipient's system, often days after it was sent. This
   workflow checks every invoice saved to a Google Drive folder with beliq and
   posts to a Slack channel when one fails, so it is fixed before it goes out.
@@ -95,7 +96,7 @@ pages. Confirm each one in the editor before submitting.
   PDF and Standard ZUGFeRD. Gmail, Send Email.
 - **Mapping:** as draft 4, plus Gmail's To = the customer's email, Attachments =
   the beliq step's File.
-- **Description:** Sending a compliant e-invoice usually means exporting,
+- **Description:** Sending a structured e-invoice usually means exporting,
   converting and attaching it by hand. This workflow builds a ZUGFeRD PDF with
   the invoice data embedded for every new QuickBooks Online invoice with beliq
   and emails it to the customer from Gmail.
