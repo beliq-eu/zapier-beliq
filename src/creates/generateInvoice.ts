@@ -187,7 +187,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     throw mapError(error);
   }
 
-  // The envelope always holds the verdict (beliq-api answers it with
+  // The envelope always holds the verdict (the API answers it with
   // `validationResult` on both document branches); only the binary answer has none.
   const verdict = verdictOutput(result.validationResult!);
   if (output === 'pdf') {
