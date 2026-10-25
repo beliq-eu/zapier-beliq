@@ -1,5 +1,5 @@
 import type { Bundle, PlainInputField, ZObject } from 'zapier-platform-core';
-import type { GenerateInput, Invoice, GenerateProfile } from '@beliq/sdk';
+import type { GenerateInput, Invoice, GenerateProfile, ValidationResult } from '@beliq/sdk';
 import { asJsonObject, createClient, mapError, type BeliqAuthData } from '../lib/client';
 import { stashDocument } from '../lib/io';
 import {
@@ -113,7 +113,7 @@ const inputFields: PlainInputField[] = [
     type: 'boolean',
     default: 'true',
     helpText:
-      'Validate the generated document before returning it, and fail rather than return an invalid one. Off, nothing checks it and Summary says NOT VALIDATED.',
+      'Validate the generated document before returning it, and fail rather than return an invalid one. Off, nothing checks it: Summary says NOT VALIDATED and that verified is false.',
   },
 ];
 
@@ -122,6 +122,20 @@ function bool(value: unknown): boolean | undefined {
   if (value === 'true') return true;
   if (value === 'false') return false;
   return undefined;
+}
+
+// What a PDF's verdict is about, by the two kinds the API sends in pdfKind.
+const PDF_VERDICT_SUBJECT = new Map([
+  ['hybrid', 'The verdict is about the invoice XML embedded in this PDF.'],
+  [
+    'visualization',
+    'The verdict is about the invoice XML this PDF was rendered from, which this step does not return. The PDF holds no XML.',
+  ],
+]);
+
+function withPdfKind(verdict: VerdictOutput, result: ValidationResult, pdfKind: string | undefined): string {
+  const subject = result.verified === false || !pdfKind ? undefined : PDF_VERDICT_SUBJECT.get(pdfKind);
+  return subject ? `${verdict.summary}\n${subject}` : verdict.summary;
 }
 
 const perform = async (z: ZObject, bundle: Bundle) => {
@@ -173,9 +187,9 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     throw mapError(error);
   }
 
-  const verdict: Partial<VerdictOutput> = result.validationResult
-    ? verdictOutput(result.validationResult)
-    : {};
+  // The envelope always holds the verdict (beliq-api answers it with
+  // `validationResult` on both document branches); only the binary answer has none.
+  const verdict = verdictOutput(result.validationResult!);
   if (output === 'pdf') {
     const filename = 'invoice.pdf';
     const contentType = result.contentType.split(';')[0].trim() || 'application/pdf';
@@ -187,6 +201,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
       sizeBytes: result.bytes.length,
       pdfKind: result.meta.pdfKind ?? null,
       ...verdict,
+      summary: withPdfKind(verdict, result.validationResult!, result.meta.pdfKind),
     };
   }
 

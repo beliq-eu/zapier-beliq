@@ -41,9 +41,11 @@ const inputFields: PlainInputField[] = [
 
 // A Factur-X or ZUGFeRD target returns a PDF for a hybrid PDF source and CII
 // XML for an XML one, so the answer's content type names the file, not the
-// target.
-function outputFilename(contentType: string, targetFormat: string): string {
-  return contentType === 'application/pdf' ? 'invoice.pdf' : `invoice.${targetFormat}.xml`;
+// target. The API answers a conversion with one of these two only.
+function outputFilename(contentType: string, targetFormat: string): string | undefined {
+  if (contentType === 'application/pdf') return 'invoice.pdf';
+  if (contentType === 'application/xml') return `invoice.${targetFormat}.xml`;
+  return undefined;
 }
 
 const perform = async (z: ZObject, bundle: Bundle) => {
@@ -64,8 +66,15 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     throw mapError(error);
   }
 
-  const contentType = result.contentType.split(';')[0].trim() || 'application/octet-stream';
+  const contentType = result.contentType.split(';')[0].trim();
   const filename = outputFilename(contentType, targetFormat);
+  if (!filename) {
+    throw new z.errors.Error(
+      `beliq answered the conversion with the content type "${contentType}", which is neither application/pdf nor application/xml, so the document is not passed on.`,
+      'UnexpectedContentType',
+      502,
+    );
+  }
   const file = await stashDocument(z, result.bytes, filename, contentType);
 
   return {

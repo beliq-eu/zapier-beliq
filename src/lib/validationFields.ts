@@ -1,11 +1,24 @@
 import type { PlainOutputField } from 'zapier-platform-core';
 import type { RulesetArtifact, ValidationIssue, ValidationResult } from '@beliq/sdk';
 
-type Field = Omit<PlainOutputField, 'key'>;
+export type Field = Omit<PlainOutputField, 'key' | 'children'> & { label: string };
+/**
+ * A list of objects, or one object. Zapier's field schema makes `children` and
+ * `list` mutually exclusive, and only checks that for input fields. So each
+ * child is declared on its own: `errors[]ruleId` for an item of a list,
+ * `pdfInput__attachmentName` for a key of an object, as Zapier flattens them.
+ */
+export type Entry = Field | { label: string; items: Record<string, Field> } | { label: string; object: Record<string, Field> };
 type PdfInput = NonNullable<ValidationResult['pdfInput']>;
 
-function fields(map: Record<string, Field>): PlainOutputField[] {
-  return Object.entries(map).map(([key, field]) => ({ key, ...field }));
+function flatten(key: string, entry: Entry): PlainOutputField[] {
+  const nested = 'items' in entry ? { sep: '[]', map: entry.items } : 'object' in entry ? { sep: '__', map: entry.object } : undefined;
+  if (!nested) return [{ key, ...entry }];
+  return Object.entries(nested.map).map(([child, field]) => ({
+    ...field,
+    key: `${key}${nested.sep}${child}`,
+    label: `${entry.label} ${field.label}`,
+  }));
 }
 
 const ISSUE_FIELDS = {
@@ -22,7 +35,7 @@ const ARTIFACT_FIELDS = {
 } satisfies Record<keyof RulesetArtifact, Field>;
 
 const PDF_INPUT_FIELDS = {
-  containerChecked: { label: 'PDF Container Checked', type: 'boolean' },
+  containerChecked: { label: 'Container Checked', type: 'boolean' },
   attachmentName: { label: 'Attachment Name' },
   attachmentFoundBy: { label: 'Attachment Found By' },
   attachmentCandidates: { label: 'Attachment Candidates', type: 'integer' },
@@ -42,8 +55,8 @@ export const VALIDATION_FIELDS = {
   verificationBadge: { label: 'Verification Badge' },
   verificationTier: { label: 'Verification Tier' },
   franceCtcBlockingRuleIds: { label: 'France CTC Blocking Rule IDs', list: true },
-  errors: { label: 'Errors', list: true, children: fields(ISSUE_FIELDS) },
-  warnings: { label: 'Warnings', list: true, children: fields(ISSUE_FIELDS) },
+  errors: { label: 'Error', items: ISSUE_FIELDS },
+  warnings: { label: 'Warning', items: ISSUE_FIELDS },
   schematronVersion: { label: 'Schematron Version' },
   ciusVersion: { label: 'CIUS Version' },
   peppolVersion: { label: 'Peppol Version' },
@@ -67,11 +80,13 @@ export const VALIDATION_FIELDS = {
   rulesetChannel: { label: 'Ruleset Channel' },
   rulesetFellBack: { label: 'Ruleset Fell Back', type: 'boolean' },
   rulesetSunsetsOn: { label: 'Ruleset Sunsets On' },
-  pdfInput: { label: 'PDF Input', children: fields(PDF_INPUT_FIELDS) },
+  pdfInput: { label: 'PDF Input', object: PDF_INPUT_FIELDS },
   sha256: { label: 'Document SHA-256' },
   rulesetSha256: { label: 'Ruleset SHA-256' },
-  rulesetArtifacts: { label: 'Ruleset Artifacts', list: true, children: fields(ARTIFACT_FIELDS) },
+  rulesetArtifacts: { label: 'Ruleset Artifact', items: ARTIFACT_FIELDS },
   driftCheckedAt: { label: 'Drift Checked At', type: 'datetime' },
-} satisfies Record<keyof ValidationResult, Field>;
+} satisfies Record<keyof ValidationResult, Entry>;
 
-export const VALIDATION_OUTPUT_FIELDS = fields(VALIDATION_FIELDS);
+export const VALIDATION_OUTPUT_FIELDS = Object.entries(VALIDATION_FIELDS).flatMap(([key, entry]) =>
+  flatten(key, entry),
+);

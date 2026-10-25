@@ -18,21 +18,27 @@ integration can carry, and it contains everything built before registration.
 - Generate Invoice asks for the API's JSON envelope, the only answer that
   carries the verdict's check depth, and returns the same Summary and Check
   Depth. With Verify off no ruleset runs, Summary says `NOT VALIDATED` and no
-  depth is named. The Output Envelope field is gone: generate never sends it,
+  depth is named; Summary says that `verified` is false and that `valid` then
+  says nothing about the document. For a PDF, Summary names the XML the verdict
+  is about, by the `pdfKind` the API sends: the one embedded in a hybrid PDF,
+  or the one a visualization PDF was rendered from, which the step does not
+  return. The Output Envelope field is gone: generate never sends it,
   so it was always empty.
 - Convert Invoice names the file after the answer's content type. A Factur-X or
   ZUGFeRD target returns CII XML for an XML source, which had been named
   `invoice.pdf`. A PDF answer carries a **PDF Note** that says what the PDF is.
+  An answer that is neither PDF nor XML fails the step and passes nothing on.
 - Parse Invoice's four mapped invoice fields say in their labels that the API
   leaves a field out when the parser read no value for it.
 - The samples Zapier shows before a test run are answers of the live API,
-  recorded on 2026-10-25.
+  recorded on 2026-10-25, the Generate XML sample a whole recorded document.
 - `@beliq/sdk` 0.5.2, up from 0.4.5, for the verdict and convert wording in
   `@beliq/sdk/helpers`. The build resolves modules as Node 16 does, which reads
   that subpath; the compiled output is otherwise unchanged.
 - The README and package description no longer call the documents compliant or
   the rules authority-pinned and drift-checked, and no longer list a badge per
-  format: `GET /v1/rulesets` publishes each format's badge.
+  format: `GET /v1/rulesets` lists each format beliq offers with its badge,
+  and a verdict carries its label when the API states one.
 
 ## 1.0.2 - 2026-09-26
 

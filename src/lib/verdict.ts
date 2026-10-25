@@ -25,7 +25,11 @@ function plural(n: number, word: string): string {
  */
 export function verdictOutput(result: ValidationResult): VerdictOutput {
   const word = verdictWord(result);
-  if (result.verified === false) return { summary: word };
+  if (result.verified === false) {
+    return {
+      summary: `${word}: verified is false, so no ruleset ran, and valid says nothing about the document.`,
+    };
+  }
 
   const depth = checkDepth(result);
   const counts = `${plural(result.errors.length, 'error')}, ${plural(result.warnings.length, 'warning')}`;
@@ -36,6 +40,14 @@ export function verdictOutput(result: ValidationResult): VerdictOutput {
     pdfInputLine(result),
   ].filter((line): line is string => line !== undefined);
   return { summary: lines.join('\n'), checkDepth: depth };
+}
+
+/**
+ * A validate answer as Validate Invoice returns it. The two keys of its own are
+ * set last, so a key of the same name in the answer cannot replace them.
+ */
+export function validateOutput(result: ValidationResult): ValidationResult & VerdictOutput {
+  return { ...result, ...verdictOutput(result) };
 }
 
 /** The two output fields `verdictOutput` fills, in the order Zapier lists them. */

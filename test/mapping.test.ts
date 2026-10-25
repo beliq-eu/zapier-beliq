@@ -267,7 +267,7 @@ describe('generate_invoice mapping', () => {
       contentType: 'application/pdf',
       sizeBytes: pdfBytes.length,
       pdfKind: 'hybrid',
-      summary: `VALID (${PDF_DEPTH}): 0 errors, 0 warnings`,
+      summary: `VALID (${PDF_DEPTH}): 0 errors, 0 warnings\nThe verdict is about the invoice XML embedded in this PDF.`,
       checkDepth: PDF_DEPTH,
     });
   });
@@ -341,6 +341,30 @@ describe('generate_invoice mapping', () => {
     expect(JSON.parse(recorder[0].body as string).template).toBe('standard');
   });
 
+  // An XRechnung PDF is a rendering of the XRechnung XML the verdict is about.
+  async function pdfSummary(pdfKind: string): Promise<string | undefined> {
+    const answer = generateEnvelope(PDF_BYTES, 'application/pdf', generatedXml.validationResult, {
+      'x-pdf-kind': pdfKind,
+    });
+    const result = await withFetch(recordingFetch(answer, []), () =>
+      runPerform(generateInvoice, makeZ([]), {
+        authData: AUTH,
+        inputData: { standard: 'xrechnung', output: 'pdf', invoice: JSON.stringify({ number: 'INV-8' }) },
+      }),
+    );
+    return result.summary;
+  }
+
+  it('says a visualization PDF holds no XML and the verdict is about the XML it was rendered from', async () => {
+    expect(await pdfSummary('visualization')).toBe(
+      `VALID (${XML_DEPTH}): 0 errors, 1 warning\nThe verdict is about the invoice XML this PDF was rendered from, which this step does not return. The PDF holds no XML.`,
+    );
+  });
+
+  it('says nothing of a PDF kind the API does not document', async () => {
+    expect(await pdfSummary('other')).toBe(`VALID (${XML_DEPTH}): 0 errors, 1 warning`);
+  });
+
   it('names no check depth when Verify is off, because no ruleset ran', async () => {
     const answer = generatedNoVerify;
     const recorder: RecordedRequest[] = [];
@@ -360,7 +384,9 @@ describe('generate_invoice mapping', () => {
       }),
     );
     expect(JSON.parse(recorder[0].body as string).verify).toBe(false);
-    expect(result).toMatchObject({ summary: 'NOT VALIDATED' });
+    expect(result.summary).toBe(
+      'NOT VALIDATED: verified is false, so no ruleset ran, and valid says nothing about the document.',
+    );
     expect(result).not.toHaveProperty('checkDepth');
   });
 });
@@ -414,7 +440,7 @@ const jsonAnswer = (data: unknown): FetchResponse => ({
   headers: { 'content-type': 'application/json' },
 });
 
-async function validateWith(data: unknown): Promise<Record<string, unknown>> {
+async function validateWith(data: unknown) {
   return withFetch(recordingFetch(jsonAnswer(data), []), () =>
     runPerform(validateInvoice, makeZ([]), {
       authData: AUTH,
@@ -479,17 +505,14 @@ describe('validate_invoice mapping', () => {
     expect(result.franceCtcBlockingRuleIds).toEqual(answer.franceCtcBlockingRuleIds);
   });
 
-  it('declares an output field for every key a recorded answer holds', async () => {
-    const declared = new Set(validateInvoice.operation.outputFields.map((f) => f.key));
-    for (const answer of [
-      validateRecorded,
-      validatedNoBadge,
-      validatedFrance,
-    ]) {
-      for (const key of Object.keys(await validateWith(answer))) {
-        expect(declared.has(key), `${key} is declared`).toBe(true);
-      }
-    }
+  it('declares each output key once, so no API key can share a name with its own two', () => {
+    const keys = validateInvoice.operation.outputFields.map((f) => f.key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('keeps its own Summary when the answer carries a key of that name', async () => {
+    const result = await validateWith({ ...validateRecorded, summary: 'from the answer' });
+    expect(result.summary).toBe(`VALID (${VALIDATE_DEPTH}): 0 errors, 1 warning`);
   });
 
   it('samples what a run returns for the recorded answer', async () => {
@@ -606,6 +629,23 @@ describe('convert_invoice mapping', () => {
     expect(result.filename).toBe('invoice.facturx.xml');
     expect(result.contentType).toBe('application/xml');
     expect(result).not.toHaveProperty('pdfNote');
+  });
+
+  it('passes on no document whose content type is neither PDF nor XML', async () => {
+    const stashes: StashCall[] = [];
+    const fetchImpl = recordingFetch(
+      { body: 'text', headers: { 'content-type': 'text/plain', 'x-lost-elements-count': '0' } },
+      [],
+    );
+    await expect(
+      withFetch(fetchImpl, () =>
+        runPerform(convertInvoice, makeZ(stashes), {
+          authData: AUTH,
+          inputData: { documentText: '<Invoice>ubl</Invoice>', targetFormat: 'facturx' },
+        }),
+      ),
+    ).rejects.toThrow('"text/plain", which is neither application/pdf nor application/xml');
+    expect(stashes).toHaveLength(0);
   });
 
   it('converts to Factur-X: attaches targetProfile and names the file invoice.pdf', async () => {

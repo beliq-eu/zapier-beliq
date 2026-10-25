@@ -5,7 +5,7 @@ import { resolveDocument } from '../lib/io';
 import { VALIDATE_FORMAT_CHOICES } from '../lib/options';
 import { validateSample } from '../lib/samples';
 import { VALIDATION_OUTPUT_FIELDS } from '../lib/validationFields';
-import { VERDICT_OUTPUT_FIELDS, verdictOutput } from '../lib/verdict';
+import { VERDICT_OUTPUT_FIELDS, validateOutput } from '../lib/verdict';
 
 const inputFields: PlainInputField[] = [
   {
@@ -42,7 +42,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
   } catch (error) {
     throw mapError(error);
   }
-  return { ...verdictOutput(result), ...result };
+  return validateOutput(result);
 };
 
 export default {

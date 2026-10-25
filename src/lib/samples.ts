@@ -4,12 +4,15 @@
 //
 // The files under `recorded/` are answers of the live API, recorded on
 // 2026-10-25 for the prefilled Invoice Data of Generate Invoice and stored as
-// the SDK returned them, with a generated document's bytes left out and their
-// length kept. A sandbox key recorded them: it marks the document it returns,
-// and its verdicts are the ones a live key gets. Each sample below is what a run
-// returns for that answer.
+// the SDK returned them. The XML document is kept whole, and it is the one the
+// validate and parse answers are about; of the PDF only its length is kept. A
+// sandbox key recorded them: it marks the document it returns, and its verdicts
+// are the ones a live key gets. Each sample below is what a run returns for
+// that answer. The JSON imports carry no API types, so the casts here are held
+// by the test that walks each recording through the output field map
+// (test/mapping.test.ts, "recordings").
 import type { ParseResult, ValidationResult } from '@beliq/sdk';
-import { verdictOutput } from './verdict';
+import { validateOutput, verdictOutput } from './verdict';
 import generatedPdf from './recorded/generate-facturx-pdf.json';
 import generatedXml from './recorded/generate-xrechnung-xml.json';
 import parsed from './recorded/parse-xrechnung.json';
@@ -19,8 +22,7 @@ export const validateRecorded = validated as ValidationResult;
 export const parseRecorded = parsed as ParseResult;
 
 export const generateXmlSample = {
-  // The document itself, cut short here.
-  xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice>...</rsm:CrossIndustryInvoice>',
+  xml: generatedXml.xml,
   contentType: generatedXml.contentType,
   schematronVersion: generatedXml.meta.schematronVersion,
   ...verdictOutput(generatedXml.validationResult as ValidationResult),
@@ -36,7 +38,7 @@ export const generatePdfSample = {
   pdfKind: generatedPdf.meta.pdfKind,
 };
 
-export const validateSample = { ...verdictOutput(validateRecorded), ...validateRecorded };
+export const validateSample = validateOutput(validateRecorded);
 
 export const parseSample = parseRecorded;
 
