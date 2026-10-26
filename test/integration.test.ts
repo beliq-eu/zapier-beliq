@@ -1,5 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
+import type { Bundle, ZObject } from 'zapier-platform-core';
 import { Beliq } from '@beliq/sdk';
+import convertInvoice from '../src/creates/convertInvoice';
+import generateInvoice from '../src/creates/generateInvoice';
 import { prefilledInvoice } from './prefilled-invoice';
 
 // Live smoke test against the real beliq API. Skipped unless BELIQ_API_KEY is
@@ -10,6 +13,15 @@ import { prefilledInvoice } from './prefilled-invoice';
 const API_KEY = process.env.BELIQ_API_KEY;
 
 const sampleInvoice = prefilledInvoice();
+
+// The creates read `errors` and `stashFile` from `z`; the two runs below return
+// XML, which is not stashed for Generate and is stashed under its name for Convert.
+const z = {
+  stashFile: async (_buffer: Buffer, _length: number, filename: string) => `stash://${filename}`,
+  errors: { Error },
+} as unknown as ZObject;
+const bundle = (inputData: Record<string, unknown>) =>
+  ({ authData: { apiKey: API_KEY }, inputData }) as unknown as Bundle;
 
 describe.skipIf(!API_KEY)('beliq live API', () => {
   let client: Beliq;
@@ -52,6 +64,27 @@ describe.skipIf(!API_KEY)('beliq live API', () => {
     });
     const parsed = await client.parse(generated.xml!, { format: 'auto' });
     expect(parsed).toHaveProperty('invoice');
+  });
+
+  it('Generate Invoice returns the check depth of the verdict the API sent', async () => {
+    const result: Record<string, unknown> = await generateInvoice.operation.perform(
+      z,
+      bundle({ standard: 'xrechnung', output: 'xml', invoice: JSON.stringify(sampleInvoice) }),
+    );
+    expect(result.xml).toContain(sampleInvoice.number);
+    expect(typeof result.checkDepth).toBe('string');
+    expect(String(result.summary).startsWith(`VALID (${String(result.checkDepth)}): `)).toBe(true);
+  });
+
+  it('Convert Invoice names the CII XML a Factur-X target returns for an XML source', async () => {
+    const generated = await client.generate({ standard: 'xrechnung', output: 'xml', invoice: sampleInvoice });
+    const result = await convertInvoice.operation.perform(
+      z,
+      bundle({ documentText: generated.xml, targetFormat: 'facturx', profile: 'en16931' }),
+    );
+    expect(result.contentType).toBe('application/xml');
+    expect(result.filename).toBe('invoice.facturx.xml');
+    expect(result).not.toHaveProperty('pdfNote');
   });
 
   it('convert to UBL returns bytes and lost-element metadata', async () => {

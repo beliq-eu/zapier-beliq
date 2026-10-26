@@ -4,6 +4,8 @@ import { createClient, mapError, type BeliqAuthData } from '../lib/client';
 import { resolveDocument } from '../lib/io';
 import { VALIDATE_FORMAT_CHOICES } from '../lib/options';
 import { validateSample } from '../lib/samples';
+import { VALIDATION_OUTPUT_FIELDS } from '../lib/validationFields';
+import { VERDICT_OUTPUT_FIELDS, validateOutput } from '../lib/verdict';
 
 const inputFields: PlainInputField[] = [
   {
@@ -34,11 +36,13 @@ const perform = async (z: ZObject, bundle: Bundle) => {
   const format = (typeof input.format === 'string' ? input.format : 'auto') as ValidateFormat;
 
   const client = createClient(bundle.authData as BeliqAuthData);
+  let result;
   try {
-    return await client.validate(document, { format });
+    result = await client.validate(document, { format });
   } catch (error) {
     throw mapError(error);
   }
+  return validateOutput(result);
 };
 
 export default {
@@ -46,16 +50,13 @@ export default {
   noun: 'Validation',
   display: {
     label: 'Validate Invoice',
-    description: 'Validates an e-invoice document against EN 16931 and national business rules.',
+    description:
+      'Validates an e-invoice against the rule packs and schemas beliq lists for its format, and returns the verdict with the check depth the API states.',
   },
   operation: {
     inputFields,
     perform,
     sample: validateSample,
-    outputFields: [
-      { key: 'valid', label: 'Valid', type: 'boolean' },
-      { key: 'format', label: 'Format' },
-      { key: 'schematronVersion', label: 'Schematron Version' },
-    ],
+    outputFields: [...VERDICT_OUTPUT_FIELDS, ...VALIDATION_OUTPUT_FIELDS],
   },
 };

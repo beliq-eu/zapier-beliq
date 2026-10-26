@@ -1,5 +1,6 @@
 import type { Bundle, PlainInputField, ZObject } from 'zapier-platform-core';
 import type { ConvertOptions, ConvertTargetFormat, FacturxProfile } from '@beliq/sdk';
+import { CONVERT_PDF_LINE } from '@beliq/sdk/helpers';
 import { createClient, mapError, type BeliqAuthData } from '../lib/client';
 import { resolveDocument, stashDocument } from '../lib/io';
 import { CONVERT_TARGET_CHOICES, PROFILE_CHOICES } from '../lib/options';
@@ -25,7 +26,8 @@ const inputFields: PlainInputField[] = [
     required: true,
     default: 'ubl',
     choices: CONVERT_TARGET_CHOICES,
-    helpText: 'The format to convert the document into.',
+    helpText:
+      'The format to convert the document into. For Factur-X or ZUGFeRD an XML source comes back as CII XML; only a hybrid PDF source comes back as a PDF.',
   },
   {
     key: 'profile',
@@ -37,11 +39,13 @@ const inputFields: PlainInputField[] = [
   },
 ];
 
-// The hybrid-PDF targets return a PDF; the pure-XML targets return XML.
-const PDF_TARGETS: ReadonlySet<string> = new Set(['facturx', 'zugferd']);
-
-function outputFilename(targetFormat: string): string {
-  return PDF_TARGETS.has(targetFormat) ? 'invoice.pdf' : `invoice.${targetFormat}.xml`;
+// A Factur-X or ZUGFeRD target returns a PDF for a hybrid PDF source and CII
+// XML for an XML one, so the answer's content type names the file, not the
+// target. The API answers a conversion with one of these two only.
+function outputFilename(contentType: string, targetFormat: string): string | undefined {
+  if (contentType === 'application/pdf') return 'invoice.pdf';
+  if (contentType === 'application/xml') return `invoice.${targetFormat}.xml`;
+  return undefined;
 }
 
 const perform = async (z: ZObject, bundle: Bundle) => {
@@ -62,8 +66,15 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     throw mapError(error);
   }
 
-  const filename = outputFilename(targetFormat);
-  const contentType = result.contentType.split(';')[0].trim() || 'application/octet-stream';
+  const contentType = result.contentType.split(';')[0].trim();
+  const filename = outputFilename(contentType, targetFormat);
+  if (!filename) {
+    throw new z.errors.Error(
+      `beliq answered the conversion with the content type "${contentType}", which is neither application/pdf nor application/xml, so the document is not passed on.`,
+      'UnexpectedContentType',
+      502,
+    );
+  }
   const file = await stashDocument(z, result.bytes, filename, contentType);
 
   return {
@@ -73,6 +84,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     sizeBytes: result.bytes.length,
     lostElementsCount: result.meta.lostElementsCount ?? 0,
     lostElements: result.meta.lostElements ?? [],
+    ...(contentType === 'application/pdf' ? { pdfNote: CONVERT_PDF_LINE } : {}),
   };
 };
 
@@ -93,6 +105,8 @@ export default {
       { key: 'contentType', label: 'Content Type' },
       { key: 'sizeBytes', label: 'Size (bytes)', type: 'integer' },
       { key: 'lostElementsCount', label: 'Lost Elements Count', type: 'integer' },
+      // Only a PDF answer carries it, so it is sampled here, not in the operation sample.
+      { key: 'pdfNote', label: 'PDF Note', sample: CONVERT_PDF_LINE },
       // lostElements is a string array; Zapier infers it from the sample. A
       // scalar-typed output field here would report a D024 type mismatch.
     ],

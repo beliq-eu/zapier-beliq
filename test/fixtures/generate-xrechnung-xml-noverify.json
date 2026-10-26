@@ -1,0 +1,15 @@
+{
+  "contentType": "application/xml",
+  "byteLength": 5808,
+  "sha256": "5fde52054d943c6fc777d18285cf22a23915b0285c6e35b8b76885b7ff7d2a84",
+  "validationResult": {
+    "valid": false,
+    "format": "cii",
+    "errors": [],
+    "warnings": [],
+    "verified": false
+  },
+  "meta": {
+    "livemode": false
+  }
+}

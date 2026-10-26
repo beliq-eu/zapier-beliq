@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { Bundle, ZObject } from 'zapier-platform-core';
 
@@ -121,26 +122,65 @@ import generateInvoice from '../src/creates/generateInvoice';
 import validateInvoice from '../src/creates/validateInvoice';
 import parseInvoice from '../src/creates/parseInvoice';
 import convertInvoice from '../src/creates/convertInvoice';
+import { CONVERT_PDF_LINE, DEPTH_NOT_STATED } from '@beliq/sdk/helpers';
 import { resolveGenerateTarget } from '../src/lib/options';
+import { parseRecorded, parseSample, validateRecorded, validateSample } from '../src/lib/samples';
+import generatedPdf from '../src/lib/recorded/generate-facturx-pdf.json';
+import generatedXml from '../src/lib/recorded/generate-xrechnung-xml.json';
+import generatedNoVerify from './fixtures/generate-xrechnung-xml-noverify.json';
+import validatedFrance from './fixtures/live-validate-france-previous.json';
+import validatedNoBadge from './fixtures/live-validate-nobadge.json';
+import parsedLeftOut from './fixtures/parse-fields-left-out.json';
 
 const AUTH = { apiKey: 'test-key-123' };
 
-describe('generate_invoice mapping', () => {
-  it('generates XML: POST /v1/generate with the JSON body, returns xml + meta', async () => {
-    const recorder: RecordedRequest[] = [];
-    // generate's output is binary: the response body IS the document, so return
-    // XML bytes with the header metadata the create surfaces.
-    const fetchXml = recordingFetch(
-      {
-        body: '<Invoice>ok</Invoice>',
-        headers: {
-          'content-type': 'application/xml',
-          'x-schematron-version': 'xr-3.0.2',
-          'x-output-envelope': 'ubl',
-        },
+// Answers of the live API stored as they came. `src/lib/recorded/` says when
+// its own were recorded. Of the copies under test/fixtures, the two
+// `live-validate-*` files were recorded on 2026-10-11 and the parse answer on
+// 2026-10-08, for the SDK's own tests; the generate answer with Verify off on
+// 2026-10-25, for the prefilled invoice.
+
+/** The JSON envelope generate answers with when asked for it, around `document`. */
+function generateEnvelope(
+  document: string | Uint8Array,
+  contentType: string,
+  validationResult: unknown,
+  headers: Record<string, string> = {},
+): FetchResponse {
+  const bytes = typeof document === 'string' ? Buffer.from(document) : Buffer.from(document);
+  return {
+    body: JSON.stringify({
+      success: true,
+      data: {
+        output: bytes.toString('base64'),
+        contentType,
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        validationResult,
       },
-      recorder,
-    );
+    }),
+    headers: { 'content-type': 'application/json', ...headers },
+  };
+}
+
+const xmlEnvelope = (document = '<Invoice/>') =>
+  generateEnvelope(document, 'application/xml', generatedXml.validationResult, {
+    'x-schematron-version': generatedXml.meta.schematronVersion,
+  });
+// The labels as the recorded answers carry them, so no test types a badge label.
+const XML_DEPTH = generatedXml.validationResult.verificationBadgeLabel;
+const PDF_DEPTH = generatedPdf.validationResult.verificationBadgeLabel;
+const VALIDATE_DEPTH = validateRecorded.verificationBadgeLabel;
+
+const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
+const pdfEnvelope = () =>
+  generateEnvelope(PDF_BYTES, 'application/pdf', generatedPdf.validationResult, {
+    'x-pdf-kind': generatedPdf.meta.pdfKind,
+  });
+
+describe('generate_invoice mapping', () => {
+  it('generates XML: POST /v1/generate with the JSON body, returns xml, meta and the verdict', async () => {
+    const recorder: RecordedRequest[] = [];
+    const fetchXml = recordingFetch(xmlEnvelope('<Invoice>ok</Invoice>'), recorder);
 
     const stashes: StashCall[] = [];
     const z = makeZ(stashes);
@@ -164,6 +204,8 @@ describe('generate_invoice mapping', () => {
     expect(req.url).toBe('https://api.beliq.eu/v1/generate');
     expect(req.headers['X-API-Key']).toBe('test-key-123');
     expect(req.headers['Content-Type']).toBe('application/json');
+    // Only the envelope carries the verdict's check depth.
+    expect(req.headers['Accept']).toBe('application/json');
     const body = JSON.parse(req.body as string);
     // The bundle carries the field's own default profile, and XRechnung pins its
     // own, so the create drops it rather than sending a 422.
@@ -176,19 +218,17 @@ describe('generate_invoice mapping', () => {
     expect(result).toEqual({
       xml: '<Invoice>ok</Invoice>',
       contentType: 'application/xml',
-      schematronVersion: 'xr-3.0.2',
-      outputEnvelope: 'ubl',
+      schematronVersion: generatedXml.meta.schematronVersion,
+      summary: `VALID (${XML_DEPTH}): 0 errors, 1 warning`,
+      checkDepth: XML_DEPTH,
     });
     expect(stashes).toHaveLength(0);
   });
 
-  it('generates PDF: stashes the bytes and returns the File URL + pdfKind', async () => {
+  it('generates PDF: stashes the bytes and returns the File URL, pdfKind and the verdict', async () => {
     const recorder: RecordedRequest[] = [];
-    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
-    const fetchImpl = recordingFetch(
-      { body: pdfBytes, headers: { 'content-type': 'application/pdf', 'x-pdf-kind': 'hybrid' } },
-      recorder,
-    );
+    const pdfBytes = PDF_BYTES;
+    const fetchImpl = recordingFetch(pdfEnvelope(), recorder);
     const stashes: StashCall[] = [];
     const z = makeZ(stashes);
     const bundle = {
@@ -220,21 +260,21 @@ describe('generate_invoice mapping', () => {
     expect(stashes[0].filename).toBe('invoice.pdf');
     expect(stashes[0].contentType).toBe('application/pdf');
     expect(stashes[0].length).toBe(pdfBytes.length);
+    expect(stashes[0].buffer.equals(Buffer.from(pdfBytes))).toBe(true);
     expect(result).toEqual({
       file: 'https://files.zapier.test/invoice.pdf',
       filename: 'invoice.pdf',
       contentType: 'application/pdf',
       sizeBytes: pdfBytes.length,
       pdfKind: 'hybrid',
+      summary: `VALID (${PDF_DEPTH}): 0 errors, 0 warnings\nThe verdict is about the invoice XML embedded in this PDF.`,
+      checkDepth: PDF_DEPTH,
     });
   });
 
   it('resolves the NLCIUS target to peppol-bis + the netherlands-nlcius profile', async () => {
     const recorder: RecordedRequest[] = [];
-    const fetchImpl = recordingFetch(
-      { body: '<Invoice/>', headers: { 'content-type': 'application/xml' } },
-      recorder,
-    );
+    const fetchImpl = recordingFetch(xmlEnvelope(), recorder);
     const z = makeZ([]);
     const bundle = {
       authData: AUTH,
@@ -260,11 +300,7 @@ describe('generate_invoice mapping', () => {
   // Output=PDF choice is a 400 nothing the user can type avoids.
   it('asks for the built-in visual when PDF is chosen and no stored template is given', async () => {
     const recorder: RecordedRequest[] = [];
-    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
-    const fetchImpl = recordingFetch(
-      { body: pdfBytes, headers: { 'content-type': 'application/pdf' } },
-      recorder,
-    );
+    const fetchImpl = recordingFetch(pdfEnvelope(), recorder);
     const bundle = {
       authData: AUTH,
       inputData: {
@@ -288,11 +324,7 @@ describe('generate_invoice mapping', () => {
   // would then have to keep in step with the API.
   it('asks for the built-in visual on the hybrid standards as well', async () => {
     const recorder: RecordedRequest[] = [];
-    const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // %PDF-1
-    const fetchImpl = recordingFetch(
-      { body: pdfBytes, headers: { 'content-type': 'application/pdf' } },
-      recorder,
-    );
+    const fetchImpl = recordingFetch(pdfEnvelope(), recorder);
     const bundle = {
       authData: AUTH,
       inputData: {
@@ -307,6 +339,55 @@ describe('generate_invoice mapping', () => {
     );
 
     expect(JSON.parse(recorder[0].body as string).template).toBe('standard');
+  });
+
+  // An XRechnung PDF is a rendering of the XRechnung XML the verdict is about.
+  async function pdfSummary(pdfKind: string): Promise<string | undefined> {
+    const answer = generateEnvelope(PDF_BYTES, 'application/pdf', generatedXml.validationResult, {
+      'x-pdf-kind': pdfKind,
+    });
+    const result = await withFetch(recordingFetch(answer, []), () =>
+      runPerform(generateInvoice, makeZ([]), {
+        authData: AUTH,
+        inputData: { standard: 'xrechnung', output: 'pdf', invoice: JSON.stringify({ number: 'INV-8' }) },
+      }),
+    );
+    return result.summary;
+  }
+
+  it('says a visualization PDF holds no XML and the verdict is about the XML it was rendered from', async () => {
+    expect(await pdfSummary('visualization')).toBe(
+      `VALID (${XML_DEPTH}): 0 errors, 1 warning\nThe verdict is about the invoice XML this PDF was rendered from, which this step does not return. The PDF holds no XML.`,
+    );
+  });
+
+  it('says nothing of a PDF kind the API does not document', async () => {
+    expect(await pdfSummary('other')).toBe(`VALID (${XML_DEPTH}): 0 errors, 1 warning`);
+  });
+
+  it('names no check depth when Verify is off, because no ruleset ran', async () => {
+    const answer = generatedNoVerify;
+    const recorder: RecordedRequest[] = [];
+    const fetchImpl = recordingFetch(
+      generateEnvelope('<Invoice/>', 'application/xml', answer.validationResult),
+      recorder,
+    );
+    const result = await withFetch(fetchImpl, () =>
+      runPerform(generateInvoice, makeZ([]), {
+        authData: AUTH,
+        inputData: {
+          standard: 'xrechnung',
+          output: 'xml',
+          verify: 'false',
+          invoice: JSON.stringify({ number: 'INV-7' }),
+        },
+      }),
+    );
+    expect(JSON.parse(recorder[0].body as string).verify).toBe(false);
+    expect(result.summary).toBe(
+      'NOT VALIDATED: verified is false, so no ruleset ran, and valid says nothing about the document.',
+    );
+    expect(result).not.toHaveProperty('checkDepth');
   });
 });
 
@@ -341,38 +422,37 @@ describe('generate_invoice output fields', () => {
   it('declares and samples every key XML output returns', async () => {
     await expectEveryReturnedKeyDeclaredAndSampled(
       { standard: 'xrechnung', output: 'xml', invoice: JSON.stringify({ number: 'INV-5' }) },
-      {
-        body: '<Invoice/>',
-        headers: {
-          'content-type': 'application/xml',
-          'x-schematron-version': 'xr-3.0.2',
-          'x-output-envelope': 'ubl',
-        },
-      },
+      xmlEnvelope(),
     );
   });
 
   it('declares and samples every key PDF output returns', async () => {
     await expectEveryReturnedKeyDeclaredAndSampled(
       { standard: 'facturx', output: 'pdf', invoice: JSON.stringify({ number: 'INV-6' }) },
-      {
-        body: new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]), // %PDF-1
-        headers: { 'content-type': 'application/pdf', 'x-pdf-kind': 'hybrid' },
-      },
+      pdfEnvelope(),
     );
   });
 });
 
+/** A JSON-envelope answer of a validate or parse call. */
+const jsonAnswer = (data: unknown): FetchResponse => ({
+  body: JSON.stringify({ success: true, data }),
+  headers: { 'content-type': 'application/json' },
+});
+
+async function validateWith(data: unknown) {
+  return withFetch(recordingFetch(jsonAnswer(data), []), () =>
+    runPerform(validateInvoice, makeZ([]), {
+      authData: AUTH,
+      inputData: { documentText: '<Invoice/>', format: 'auto' },
+    }),
+  );
+}
+
 describe('validate_invoice mapping', () => {
-  it('validates text input: POST /v1/validate?format=..., raw body, returns the result JSON', async () => {
+  it('validates text input: POST /v1/validate?format=..., raw body, returns the result with its verdict', async () => {
     const recorder: RecordedRequest[] = [];
-    const fetchImpl = recordingFetch(
-      {
-        body: JSON.stringify({ success: true, data: { valid: true, format: 'ubl', errors: [], warnings: [] } }),
-        headers: { 'content-type': 'application/json' },
-      },
-      recorder,
-    );
+    const fetchImpl = recordingFetch(jsonAnswer(validateRecorded), recorder);
     const stashes: StashCall[] = [];
     const z = makeZ(stashes);
     const bundle = {
@@ -393,7 +473,50 @@ describe('validate_invoice mapping', () => {
     // The document text is sent as the raw request body.
     expect(new TextDecoder().decode(req.rawBody!)).toBe('<Invoice>data</Invoice>');
 
-    expect(result).toEqual({ valid: true, format: 'ubl', errors: [], warnings: [] });
+    // The answer is handed on as it came, with the verdict line and the depth in front.
+    expect(result).toEqual({
+      summary: `VALID (${VALIDATE_DEPTH}): 0 errors, 1 warning`,
+      checkDepth: VALIDATE_DEPTH,
+      ...validateRecorded,
+    });
+  });
+
+  it('says that no depth was stated when the API sent no badge label', async () => {
+    // FatturaPA FPA12 carries no tier, badge or label.
+    const result = await validateWith(validatedNoBadge);
+    expect(result.summary).toBe(`VALID (${DEPTH_NOT_STATED}): 0 errors, 0 warnings`);
+    expect(result.checkDepth).toBe(DEPTH_NOT_STATED);
+    expect(result).not.toHaveProperty('verificationBadgeLabel');
+  });
+
+  it('leads with a France CTC block, which the API reports apart from valid', async () => {
+    const answer = validatedFrance as typeof validateRecorded;
+    const result = await validateWith(answer);
+    const lines = String(result.summary).split('\n');
+    const block = answer.warnings.find((w) => w.ruleId === 'FRANCE_CTC_FINDINGS_BLOCK_TRANSMISSION');
+    expect(block).toBeDefined();
+    expect(answer.valid).toBe(true);
+    // The API's own message first; it names every blocking id, so no id line follows.
+    expect(lines[0]).toBe(block?.message);
+    expect(lines[1]).toBe(`VALID (${answer.verificationBadgeLabel}): 0 errors, 10 warnings`);
+    expect(lines[2]).toBe(
+      'Ruleset channel: previous; the retained ruleset is served until 2027-05-16',
+    );
+    expect(result.franceCtcBlockingRuleIds).toEqual(answer.franceCtcBlockingRuleIds);
+  });
+
+  it('declares each output key once, so no API key can share a name with its own two', () => {
+    const keys = validateInvoice.operation.outputFields.map((f) => f.key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('keeps its own Summary when the answer carries a key of that name', async () => {
+    const result = await validateWith({ ...validateRecorded, summary: 'from the answer' });
+    expect(result.summary).toBe(`VALID (${VALIDATE_DEPTH}): 0 errors, 1 warning`);
+  });
+
+  it('samples what a run returns for the recorded answer', async () => {
+    expect(await validateWith(validateRecorded)).toEqual(validateSample);
   });
 });
 
@@ -421,6 +544,29 @@ describe('parse_invoice mapping', () => {
     expect(req.url).toBe('https://api.beliq.eu/v1/parse?format=cii');
     expect(new TextDecoder().decode(req.rawBody!)).toBe('<Invoice>cii</Invoice>');
     expect(result).toEqual(parsed);
+  });
+
+  it('leaves out a field the API left out, and fills nothing in its place', async () => {
+    // The API read no decimal for totalGrossAmount, so the answer has no such key.
+    const answer = parsedLeftOut.data as typeof parseRecorded;
+    const result = await withFetch(recordingFetch(jsonAnswer(answer), []), () =>
+      runPerform(parseInvoice, makeZ([]), {
+        authData: AUTH,
+        inputData: { documentText: '<Invoice/>', format: 'auto' },
+      }),
+    );
+    expect(result).toEqual(answer);
+    expect(result.invoice).not.toHaveProperty('totalGrossAmount');
+  });
+
+  it('samples the recorded answer, which a run hands on as it came', async () => {
+    const result = await withFetch(recordingFetch(jsonAnswer(parseRecorded), []), () =>
+      runPerform(parseInvoice, makeZ([]), {
+        authData: AUTH,
+        inputData: { documentText: '<Invoice/>', format: 'auto' },
+      }),
+    );
+    expect(result).toEqual(parseSample);
   });
 });
 
@@ -464,6 +610,44 @@ describe('convert_invoice mapping', () => {
     expect(result.lostElements).toEqual(['BT-10', 'BT-11']);
   });
 
+  it('names a Factur-X answer by its content type: CII XML from an XML source', async () => {
+    const stashes: StashCall[] = [];
+    const fetchImpl = recordingFetch(
+      {
+        body: new TextEncoder().encode('<rsm:CrossIndustryInvoice/>'),
+        headers: { 'content-type': 'application/xml', 'x-lost-elements-count': '0' },
+      },
+      [],
+    );
+    const result = await withFetch(fetchImpl, () =>
+      runPerform(convertInvoice, makeZ(stashes), {
+        authData: AUTH,
+        inputData: { documentText: '<Invoice>ubl</Invoice>', targetFormat: 'facturx' },
+      }),
+    );
+    expect(stashes[0].filename).toBe('invoice.facturx.xml');
+    expect(result.filename).toBe('invoice.facturx.xml');
+    expect(result.contentType).toBe('application/xml');
+    expect(result).not.toHaveProperty('pdfNote');
+  });
+
+  it('passes on no document whose content type is neither PDF nor XML', async () => {
+    const stashes: StashCall[] = [];
+    const fetchImpl = recordingFetch(
+      { body: 'text', headers: { 'content-type': 'text/plain', 'x-lost-elements-count': '0' } },
+      [],
+    );
+    await expect(
+      withFetch(fetchImpl, () =>
+        runPerform(convertInvoice, makeZ(stashes), {
+          authData: AUTH,
+          inputData: { documentText: '<Invoice>ubl</Invoice>', targetFormat: 'facturx' },
+        }),
+      ),
+    ).rejects.toThrow('"text/plain", which is neither application/pdf nor application/xml');
+    expect(stashes).toHaveLength(0);
+  });
+
   it('converts to Factur-X: attaches targetProfile and names the file invoice.pdf', async () => {
     const recorder: RecordedRequest[] = [];
     const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]); // %PDF-
@@ -492,6 +676,8 @@ describe('convert_invoice mapping', () => {
     expect(stashes[0].contentType).toBe('application/pdf');
     expect(result.filename).toBe('invoice.pdf');
     expect(result.lostElementsCount).toBe(0);
+    // No documented field says which path made the PDF, so the note names both.
+    expect(result.pdfNote).toBe(CONVERT_PDF_LINE);
   });
 });
 
@@ -501,10 +687,7 @@ describe('generate_invoice profile gating', () => {
   // pair the engine answers with 422 PROFILE_STANDARD_MISMATCH.
   async function bodyFor(inputData: Record<string, unknown>) {
     const recorder: RecordedRequest[] = [];
-    const fetchXml = recordingFetch(
-      { status: 200, body: '<Invoice/>', headers: { 'content-type': 'application/xml' } },
-      recorder,
-    );
+    const fetchXml = recordingFetch(xmlEnvelope(), recorder);
     const z = makeZ([]);
     await withFetch(fetchXml, () =>
       runPerform(generateInvoice, z, {

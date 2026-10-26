@@ -1,0 +1,76 @@
+{
+  "contentType": "application/xml",
+  "xml": "<?xml version='1.0' encoding='UTF-8'?>\n<!-- beliq SANDBOX / SPECIMEN: generated in test mode. Not a valid production invoice and not transmitted to any network. -->\n<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\" xmlns:udt=\"urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100\" xmlns:qdt=\"urn:un:unece:uncefact:data:standard:QualifiedDataType:100\">\n  <rsm:ExchangedDocumentContext>\n    <ram:BusinessProcessSpecifiedDocumentContextParameter>\n      <ram:ID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ram:ID>\n    </ram:BusinessProcessSpecifiedDocumentContextParameter>\n    <ram:GuidelineSpecifiedDocumentContextParameter>\n      <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0</ram:ID>\n    </ram:GuidelineSpecifiedDocumentContextParameter>\n  </rsm:ExchangedDocumentContext>\n  <rsm:ExchangedDocument>\n    <ram:ID>INV-2026-001</ram:ID>\n    <ram:TypeCode>380</ram:TypeCode>\n    <ram:IssueDateTime>\n      <udt:DateTimeString format=\"102\">20260115</udt:DateTimeString>\n    </ram:IssueDateTime>\n  </rsm:ExchangedDocument>\n  <rsm:SupplyChainTradeTransaction>\n    <ram:IncludedSupplyChainTradeLineItem>\n      <ram:AssociatedDocumentLineDocument>\n        <ram:LineID>1</ram:LineID>\n      </ram:AssociatedDocumentLineDocument>\n      <ram:SpecifiedTradeProduct>\n        <ram:Name>Consulting services</ram:Name>\n      </ram:SpecifiedTradeProduct>\n      <ram:SpecifiedLineTradeAgreement>\n        <ram:NetPriceProductTradePrice>\n          <ram:ChargeAmount>100.00</ram:ChargeAmount>\n        </ram:NetPriceProductTradePrice>\n      </ram:SpecifiedLineTradeAgreement>\n      <ram:SpecifiedLineTradeDelivery>\n        <ram:BilledQuantity unitCode=\"HUR\">10</ram:BilledQuantity>\n      </ram:SpecifiedLineTradeDelivery>\n      <ram:SpecifiedLineTradeSettlement>\n        <ram:ApplicableTradeTax>\n          <ram:TypeCode>VAT</ram:TypeCode>\n          <ram:CategoryCode>S</ram:CategoryCode>\n          <ram:RateApplicablePercent>19.00</ram:RateApplicablePercent>\n        </ram:ApplicableTradeTax>\n        <ram:SpecifiedTradeSettlementLineMonetarySummation>\n          <ram:LineTotalAmount>1000.00</ram:LineTotalAmount>\n        </ram:SpecifiedTradeSettlementLineMonetarySummation>\n      </ram:SpecifiedLineTradeSettlement>\n    </ram:IncludedSupplyChainTradeLineItem>\n    <ram:ApplicableHeaderTradeAgreement>\n      <ram:BuyerReference>991-12345-67</ram:BuyerReference>\n      <ram:SellerTradeParty>\n        <ram:Name>Seller GmbH</ram:Name>\n        <ram:DefinedTradeContact>\n          <ram:PersonName>A Person</ram:PersonName>\n          <ram:TelephoneUniversalCommunication>\n            <ram:CompleteNumber>+49 30 123456</ram:CompleteNumber>\n          </ram:TelephoneUniversalCommunication>\n          <ram:EmailURIUniversalCommunication>\n            <ram:URIID>billing@seller.example</ram:URIID>\n          </ram:EmailURIUniversalCommunication>\n        </ram:DefinedTradeContact>\n        <ram:PostalTradeAddress>\n          <ram:PostcodeCode>10115</ram:PostcodeCode>\n          <ram:LineOne>Hauptstrasse 1</ram:LineOne>\n          <ram:CityName>Berlin</ram:CityName>\n          <ram:CountryID>DE</ram:CountryID>\n        </ram:PostalTradeAddress>\n        <ram:URIUniversalCommunication>\n          <ram:URIID schemeID=\"0088\">4030000000003</ram:URIID>\n        </ram:URIUniversalCommunication>\n        <ram:SpecifiedTaxRegistration>\n          <ram:ID schemeID=\"VA\">DE123456789</ram:ID>\n        </ram:SpecifiedTaxRegistration>\n      </ram:SellerTradeParty>\n      <ram:BuyerTradeParty>\n        <ram:Name>Buyer SARL</ram:Name>\n        <ram:PostalTradeAddress>\n          <ram:PostcodeCode>75002</ram:PostcodeCode>\n          <ram:LineOne>Rue de la Paix 2</ram:LineOne>\n          <ram:CityName>Paris</ram:CityName>\n          <ram:CountryID>FR</ram:CountryID>\n        </ram:PostalTradeAddress>\n        <ram:URIUniversalCommunication>\n          <ram:URIID schemeID=\"0088\">4030000000027</ram:URIID>\n        </ram:URIUniversalCommunication>\n        <ram:SpecifiedTaxRegistration>\n          <ram:ID schemeID=\"VA\">FR12345678901</ram:ID>\n        </ram:SpecifiedTaxRegistration>\n      </ram:BuyerTradeParty>\n    </ram:ApplicableHeaderTradeAgreement>\n    <ram:ApplicableHeaderTradeDelivery/>\n    <ram:ApplicableHeaderTradeSettlement>\n      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>\n      <ram:SpecifiedTradeSettlementPaymentMeans>\n        <ram:TypeCode>58</ram:TypeCode>\n        <ram:PayeePartyCreditorFinancialAccount>\n          <ram:IBANID>DE89370400440532013000</ram:IBANID>\n        </ram:PayeePartyCreditorFinancialAccount>\n      </ram:SpecifiedTradeSettlementPaymentMeans>\n      <ram:ApplicableTradeTax>\n        <ram:CalculatedAmount>190.00</ram:CalculatedAmount>\n        <ram:TypeCode>VAT</ram:TypeCode>\n        <ram:BasisAmount>1000.00</ram:BasisAmount>\n        <ram:CategoryCode>S</ram:CategoryCode>\n        <ram:RateApplicablePercent>19.00</ram:RateApplicablePercent>\n      </ram:ApplicableTradeTax>\n      <ram:SpecifiedTradePaymentTerms>\n        <ram:DueDateDateTime>\n          <udt:DateTimeString format=\"102\">20260214</udt:DateTimeString>\n        </ram:DueDateDateTime>\n      </ram:SpecifiedTradePaymentTerms>\n      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>\n        <ram:LineTotalAmount>1000.00</ram:LineTotalAmount>\n        <ram:TaxBasisTotalAmount>1000.00</ram:TaxBasisTotalAmount>\n        <ram:TaxTotalAmount currencyID=\"EUR\">190.00</ram:TaxTotalAmount>\n        <ram:GrandTotalAmount>1190.00</ram:GrandTotalAmount>\n        <ram:DuePayableAmount>1190.00</ram:DuePayableAmount>\n      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>\n    </ram:ApplicableHeaderTradeSettlement>\n  </rsm:SupplyChainTradeTransaction>\n</rsm:CrossIndustryInvoice>\n",
+  "sha256": "5fde52054d943c6fc777d18285cf22a23915b0285c6e35b8b76885b7ff7d2a84",
+  "validationResult": {
+    "valid": true,
+    "format": "cii",
+    "errors": [],
+    "warnings": [
+      {
+        "ruleId": "BR-DE-TMP-32",
+        "severity": "info",
+        "message": "[BR-DE-TMP-32] Eine Rechnung sollte zur Angabe des Liefer-/Leistungsdatums entweder BT-72 \"Actual delivery date\", BG-14 \"Invoicing period\" oder in jeder Rechnungsposition BG-26 \"Invoice line period\" enthalten.",
+        "location": "/Q{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}CrossIndustryInvoice[1]/Q{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}SupplyChainTradeTransaction[1]"
+      }
+    ],
+    "verified": true,
+    "rulesetSha256": "979a8ddf11c41c1357b026c1ab3fb66cf0025786f9d4fb4f27e07e759b474ffa",
+    "rulesetArtifacts": [
+      {
+        "key": "cii_xsd",
+        "version": "D16B",
+        "fileSha256": "b9798aafcba039d0630f0015ffae5092a1758bf924d19d97b6bf0bf9d95f22a0"
+      },
+      {
+        "key": "en16931_cii_schematron",
+        "version": "1.3.16",
+        "fileSha256": "0b234dea2bbfee739b7761e607a992c17fab88773014ef56355b6158cfb1cc53"
+      },
+      {
+        "key": "xrechnung_schematron",
+        "version": "XRechnung-2.6.0",
+        "fileSha256": "30e64d8bddf0bebded89e2bedab0b4856f0c4f1e852bd303e1957a7d627c0e6c"
+      },
+      {
+        "key": "xrechnung_severity_overrides",
+        "version": "2026-08-31",
+        "fileSha256": "3db6bcddfd30cc9d51ac7c6c156ae2621c27d471a65f9db98db5c3b081ab6713"
+      }
+    ],
+    "driftCheckedAt": "2026-10-24T04:15:35Z",
+    "profileDetected": "xrechnung",
+    "verificationTier": "conformance-verified",
+    "verificationBadge": "authority-verified",
+    "verificationBadgeLabel": "Authority-checked",
+    "schematronVersion": "1.3.16",
+    "ciusVersion": "XRechnung-2.6.0"
+  },
+  "meta": {
+    "schematronVersion": "1.3.16",
+    "rulesetSha256": "979a8ddf11c41c1357b026c1ab3fb66cf0025786f9d4fb4f27e07e759b474ffa",
+    "rulesetArtifacts": [
+      {
+        "key": "cii_xsd",
+        "version": "D16B",
+        "fileSha256": "b9798aafcba039d0630f0015ffae5092a1758bf924d19d97b6bf0bf9d95f22a0"
+      },
+      {
+        "key": "en16931_cii_schematron",
+        "version": "1.3.16",
+        "fileSha256": "0b234dea2bbfee739b7761e607a992c17fab88773014ef56355b6158cfb1cc53"
+      },
+      {
+        "key": "xrechnung_schematron",
+        "version": "XRechnung-2.6.0",
+        "fileSha256": "30e64d8bddf0bebded89e2bedab0b4856f0c4f1e852bd303e1957a7d627c0e6c"
+      },
+      {
+        "key": "xrechnung_severity_overrides",
+        "version": "2026-08-31",
+        "fileSha256": "3db6bcddfd30cc9d51ac7c6c156ae2621c27d471a65f9db98db5c3b081ab6713"
+      }
+    ],
+    "livemode": false
+  }
+}

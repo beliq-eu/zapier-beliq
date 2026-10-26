@@ -1,8 +1,8 @@
 {
   "name": "zapier-beliq",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
-  "description": "Zapier integration for beliq - generate, validate, parse, and convert EU-compliant e-invoices (XRechnung, ZUGFeRD, Factur-X, Peppol BIS).",
+  "description": "Validate, generate, convert and parse EU e-invoices (XRechnung, ZUGFeRD, Factur-X, Peppol BIS) with the beliq API from Zapier.",
   "keywords": [
     "beliq",
     "e-invoice",
@@ -37,14 +37,14 @@
     "_zapier-build": "npm run build",
     "test": "vitest run --exclude test/integration.test.ts",
     "test:integration": "vitest run test/integration.test.ts",
-    "typecheck": "tsc -p tsconfig.test.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "lint": "eslint . --max-warnings 0",
     "validate": "bash scripts/validate-gate.sh",
     "push": "zapier-platform push",
     "scrub:check": "bash scripts/scrub-check.sh"
   },
   "dependencies": {
-    "@beliq/sdk": "^0.4.5",
+    "@beliq/sdk": "^0.5.2",
     "zapier-platform-core": "19.1.0"
   },
   "overrides": {

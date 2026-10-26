@@ -1,5 +1,5 @@
 import type { Bundle, PlainInputField, ZObject } from 'zapier-platform-core';
-import type { GenerateInput, Invoice, GenerateProfile } from '@beliq/sdk';
+import type { GenerateInput, Invoice, GenerateProfile, ValidationResult } from '@beliq/sdk';
 import { asJsonObject, createClient, mapError, type BeliqAuthData } from '../lib/client';
 import { stashDocument } from '../lib/io';
 import {
@@ -10,6 +10,7 @@ import {
   usableProfile,
 } from '../lib/options';
 import { generatePdfSample, generateXmlSample } from '../lib/samples';
+import { VERDICT_OUTPUT_FIELDS, verdictOutput, type VerdictOutput } from '../lib/verdict';
 
 // EN 16931-valid default: dueDate (rule BR-CO-25), seller taxId for VAT category
 // S, a taxSummary, and consistent totals (net + tax = gross). Generates as-is so
@@ -112,7 +113,7 @@ const inputFields: PlainInputField[] = [
     type: 'boolean',
     default: 'true',
     helpText:
-      'Validate the generated document before returning it, and fail rather than return an invalid one.',
+      'Validate the generated document before returning it, and fail rather than return an invalid one. Off, nothing checks it: Summary says NOT VALIDATED and that verified is false.',
   },
 ];
 
@@ -121,6 +122,20 @@ function bool(value: unknown): boolean | undefined {
   if (value === 'true') return true;
   if (value === 'false') return false;
   return undefined;
+}
+
+// What a PDF's verdict is about, by the two kinds the API sends in pdfKind.
+const PDF_VERDICT_SUBJECT = new Map([
+  ['hybrid', 'The verdict is about the invoice XML embedded in this PDF.'],
+  [
+    'visualization',
+    'The verdict is about the invoice XML this PDF was rendered from, which this step does not return. The PDF holds no XML.',
+  ],
+]);
+
+function withPdfKind(verdict: VerdictOutput, result: ValidationResult, pdfKind: string | undefined): string {
+  const subject = result.verified === false || !pdfKind ? undefined : PDF_VERDICT_SUBJECT.get(pdfKind);
+  return subject ? `${verdict.summary}\n${subject}` : verdict.summary;
 }
 
 const perform = async (z: ZObject, bundle: Bundle) => {
@@ -160,6 +175,9 @@ const perform = async (z: ZObject, bundle: Bundle) => {
   }
   const verify = bool(input.verify);
   if (verify !== undefined) generateInput.verify = verify;
+  // The JSON envelope is the only answer that carries the verdict's check
+  // depth, and the API does the same work for either shape.
+  generateInput.seal = true;
 
   const client = createClient(bundle.authData as BeliqAuthData);
   let result;
@@ -169,6 +187,9 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     throw mapError(error);
   }
 
+  // The envelope always holds the verdict (the API answers it with
+  // `validationResult` on both document branches); only the binary answer has none.
+  const verdict = verdictOutput(result.validationResult!);
   if (output === 'pdf') {
     const filename = 'invoice.pdf';
     const contentType = result.contentType.split(';')[0].trim() || 'application/pdf';
@@ -179,6 +200,8 @@ const perform = async (z: ZObject, bundle: Bundle) => {
       contentType,
       sizeBytes: result.bytes.length,
       pdfKind: result.meta.pdfKind ?? null,
+      ...verdict,
+      summary: withPdfKind(verdict, result.validationResult!, result.meta.pdfKind),
     };
   }
 
@@ -186,7 +209,7 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     xml: result.xml,
     contentType: result.contentType.split(';')[0].trim() || 'application/xml',
     schematronVersion: result.meta.schematronVersion ?? null,
-    outputEnvelope: result.meta.outputEnvelope ?? null,
+    ...verdict,
   };
 };
 
@@ -195,7 +218,8 @@ export default {
   noun: 'Invoice',
   display: {
     label: 'Generate Invoice',
-    description: 'Generates an EN 16931 e-invoice as XML or a hybrid PDF/A-3.',
+    description:
+      'Generates an e-invoice from EN 16931 invoice data, as XML or a hybrid PDF/A-3, with the verdict and the check depth the API states.',
   },
   operation: {
     inputFields,
@@ -213,8 +237,8 @@ export default {
         sample: generatePdfSample.sizeBytes,
       },
       { key: 'schematronVersion', label: 'Schematron Version' },
-      { key: 'outputEnvelope', label: 'Output Envelope' },
       { key: 'pdfKind', label: 'PDF Kind', sample: generatePdfSample.pdfKind },
+      ...VERDICT_OUTPUT_FIELDS,
     ],
   },
 };
