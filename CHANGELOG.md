@@ -5,7 +5,7 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
-## 1.0.3 - unreleased
+## 1.0.3 - 2026-10-26
 
 - Validate Invoice returns every field of the API's verdict as it came, each
   declared as an output field, plus **Summary** and **Check Depth**. Check Depth
