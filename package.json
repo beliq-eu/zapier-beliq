@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@beliq/sdk": "^0.5.2",
-    "zapier-platform-core": "19.1.0"
+    "zapier-platform-core": "19.2.1"
   },
   "overrides": {
     "form-data": "^4.0.6",
