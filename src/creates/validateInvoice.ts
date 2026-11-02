@@ -26,7 +26,7 @@ const inputFields: PlainInputField[] = [
     type: 'string',
     default: 'auto',
     choices: VALIDATE_FORMAT_CHOICES,
-    helpText: 'The syntax to read the document as. Auto-detect picks CII or UBL from the content.',
+    helpText: 'The format to read the document as. Auto-detect picks it from the content.',
   },
 ];
 
