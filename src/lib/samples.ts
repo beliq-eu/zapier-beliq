@@ -11,7 +11,7 @@
 // that answer. The JSON imports carry no API types, so the casts here are held
 // by the test that walks each recording through the output field map
 // (test/mapping.test.ts, "recordings").
-import type { ParseResult, ValidationResult } from '@beliq/sdk';
+import type { LostElement, ParseResult, ValidationResult } from '@beliq/sdk';
 import { validateOutput, verdictOutput } from './verdict';
 import generatedPdf from './recorded/generate-facturx-pdf.json';
 import generatedXml from './recorded/generate-xrechnung-xml.json';
@@ -42,11 +42,33 @@ export const validateSample = validateOutput(validateRecorded);
 
 export const parseSample = parseRecorded;
 
+// No recording: a Peppol BIS UBL source converted to plain UBL, with the two
+// losses of the worked example at
+// https://docs.beliq.eu/api-reference/convert/#lostelement-schema
+const ENDPOINT_STRIPPED = 'Peppol endpoint stripped (target is not peppol-bis)';
+const CAC = '{urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2}';
+export const LOST_ELEMENTS_EXAMPLE: LostElement[] = [
+  {
+    path: `/Invoice/${CAC}AccountingSupplierParty/${CAC}Party/cbc:EndpointID`,
+    value: null,
+    reason: ENDPOINT_STRIPPED,
+    severity: 'info',
+    acceptableLoss: true,
+  },
+  {
+    path: `/Invoice/${CAC}AccountingCustomerParty/${CAC}Party/cbc:EndpointID`,
+    value: null,
+    reason: ENDPOINT_STRIPPED,
+    severity: 'info',
+    acceptableLoss: true,
+  },
+];
+
 export const convertSample = {
   file: 'https://zapier-dev-files.s3.amazonaws.com/cli-platform/invoice.ubl.xml',
   filename: 'invoice.ubl.xml',
   contentType: 'application/xml',
   sizeBytes: 4096,
-  lostElementsCount: 0,
-  lostElements: [],
+  lostElementsCount: 2,
+  lostElements: LOST_ELEMENTS_EXAMPLE,
 };

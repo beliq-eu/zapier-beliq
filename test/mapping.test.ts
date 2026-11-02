@@ -123,8 +123,14 @@ import validateInvoice from '../src/creates/validateInvoice';
 import parseInvoice from '../src/creates/parseInvoice';
 import convertInvoice from '../src/creates/convertInvoice';
 import { CONVERT_PDF_LINE, DEPTH_NOT_STATED } from '@beliq/sdk/helpers';
-import { resolveGenerateTarget } from '../src/lib/options';
-import { parseRecorded, parseSample, validateRecorded, validateSample } from '../src/lib/samples';
+import { VALIDATE_FORMAT_CHOICES, resolveGenerateTarget } from '../src/lib/options';
+import {
+  LOST_ELEMENTS_EXAMPLE,
+  parseRecorded,
+  parseSample,
+  validateRecorded,
+  validateSample,
+} from '../src/lib/samples';
 import generatedPdf from '../src/lib/recorded/generate-facturx-pdf.json';
 import generatedXml from '../src/lib/recorded/generate-xrechnung-xml.json';
 import generatedNoVerify from './fixtures/generate-xrechnung-xml-noverify.json';
@@ -449,6 +455,14 @@ async function validateWith(data: unknown) {
   );
 }
 
+describe('validate format choices', () => {
+  it('label every format the SDK offers', () => {
+    for (const [value, label] of Object.entries(VALIDATE_FORMAT_CHOICES)) {
+      expect(label, value).not.toBe(value);
+    }
+  });
+});
+
 describe('validate_invoice mapping', () => {
   it('validates text input: POST /v1/validate?format=..., raw body, returns the result with its verdict', async () => {
     const recorder: RecordedRequest[] = [];
@@ -580,7 +594,7 @@ describe('convert_invoice mapping', () => {
         headers: {
           'content-type': 'application/xml',
           'x-lost-elements-count': '2',
-          'x-lost-elements': JSON.stringify(['BT-10', 'BT-11']),
+          'x-lost-elements': JSON.stringify(LOST_ELEMENTS_EXAMPLE),
         },
       },
       recorder,
@@ -607,7 +621,31 @@ describe('convert_invoice mapping', () => {
     expect(stashes[0].contentType).toBe('application/xml');
     expect(result.file).toBe('https://files.zapier.test/invoice.ubl.xml');
     expect(result.lostElementsCount).toBe(2);
-    expect(result.lostElements).toEqual(['BT-10', 'BT-11']);
+    expect(result.lostElements).toEqual(LOST_ELEMENTS_EXAMPLE);
+  });
+
+  it('passes on the one truncation entry of a list past the header cap, with the exact count', async () => {
+    const truncated = {
+      truncated: true,
+      reason: 'Audit list exceeded 6144 bytes (412 entries); see X-Lost-Elements-Count for the exact count.',
+    };
+    const fetchImpl = recordingFetch(
+      {
+        body: new TextEncoder().encode('<Invoice>ubl</Invoice>'),
+        headers: {
+          'content-type': 'application/xml',
+          'x-lost-elements-count': '412',
+          'x-lost-elements': JSON.stringify([truncated]),
+        },
+      },
+      [],
+    );
+    const bundle = { authData: AUTH, inputData: { documentText: '<Invoice>cii</Invoice>', targetFormat: 'ubl' } };
+
+    const result = await withFetch(fetchImpl, () => runPerform(convertInvoice, makeZ([]), bundle));
+
+    expect(result.lostElementsCount).toBe(412);
+    expect(result.lostElements).toEqual([truncated]);
   });
 
   it('names a Factur-X answer by its content type: CII XML from an XML source', async () => {

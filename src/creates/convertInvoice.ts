@@ -107,8 +107,9 @@ export default {
       { key: 'lostElementsCount', label: 'Lost Elements Count', type: 'integer' },
       // Only a PDF answer carries it, so it is sampled here, not in the operation sample.
       { key: 'pdfNote', label: 'PDF Note', sample: CONVERT_PDF_LINE },
-      // lostElements is a string array; Zapier infers it from the sample. A
-      // scalar-typed output field here would report a D024 type mismatch.
+      // lostElements is a list of objects, which Zapier shows as line items and
+      // infers from the sample. A scalar-typed output field here would report a
+      // D024 type mismatch.
     ],
   },
 };
