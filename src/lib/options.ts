@@ -10,7 +10,8 @@ import {
 } from '@beliq/sdk';
 
 // Dropdown value-spaces are sourced straight from the SDK's LIVE_* lists, which
-// carry every value the API accepts for each operation. Generate offers all
+// carry the values the API accepts for each operation, less any the SDK leaves
+// out with its reason beside the list. Generate offers all
 // eight standards, the four national XSD ones included; convert offers fewer
 // because the API's own convert enums do. GET /v1/rulesets carries the badge
 // saying how deep each format's check goes. Labels here are cosmetic only.
@@ -26,6 +27,7 @@ const LABELS = new Map(Object.entries({
   facturae: 'Facturae (Spain)',
   eslog: 'e-SLOG (Slovenia)',
   ksef: 'KSeF FA(3) (Poland)',
+  poland_ksef_fa3: 'KSeF FA(3) (Poland)',
   basicwl: 'BASIC WL',
   en16931: 'EN 16931',
   extended: 'EXTENDED',

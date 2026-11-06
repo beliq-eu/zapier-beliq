@@ -5,6 +5,22 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
+## Unreleased
+
+- Convert Invoice returns each `lostElements` entry as the object the API
+  sends, with `path`, `value`, `reason`, `severity` and `acceptableLoss`
+  (https://docs.beliq.eu/api-reference/convert/#lostelement-schema), which
+  Zapier shows as line items. It returned the text `[object Object]` for every
+  entry. When the list would pass the API's 6 KB header cap, it holds one entry
+  with `truncated` set to true instead, and `lostElementsCount` stays the exact
+  count.
+- Validate Invoice's Format dropdown offers FatturaPA (Italy), Facturae
+  (Spain) and e-SLOG (Slovenia) too, and Poland's KSeF FA(3) format: KSeF
+  FA(3) format-ready. `GET /v1/rulesets` states how deep the check of each
+  goes. Beliq does not operate KSeF submission: transmission via your chosen
+  intermediary.
+- Moves to `@beliq/sdk` 0.6.0.
+
 ## 1.0.3 - 2026-10-26
 
 - Validate Invoice returns every field of the API's verdict as it came, each

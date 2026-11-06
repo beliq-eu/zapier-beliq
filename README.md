@@ -20,17 +20,19 @@ Create a **beliq API key** at [dashboard.beliq.eu](https://dashboard.beliq.eu) (
 - **Generate Invoice** returns the XML text (for XML output) or a Zapier **File** plus metadata (for PDF output), with the **Summary** and **Check Depth** of the document's verdict. With Verify off no ruleset runs: Summary says `NOT VALIDATED` and that `verified` is false, so `valid` then says nothing about the document. For a PDF, Summary also says which XML the verdict is about: the one embedded in a hybrid PDF, or, for a visualization PDF, the XML it was rendered from, which the step does not return.
 - **Validate Invoice** returns every field of the API's verdict as it came (`valid`, `format`, `verificationBadgeLabel`, the rule packs with their versions, `errors`, `warnings`, and the rest), plus two of its own. **Summary** gives the verdict with its check depth and its error and warning counts, after the lines of a France CTC block when the answer has `franceCtcBlockingRuleIds`. The API reports such a block apart from `valid`, so a filter on Valid alone does not catch it. **Check Depth** is `verificationBadgeLabel` as the API sent it, or `check depth not stated` when it sent none.
 - **Parse Invoice** returns the structured invoice fields the parser read, and `warnings` naming what the document holds that the answer does not return. A field the parser read no value for is left out, not filled.
-- **Convert Invoice** returns a Zapier **File** with the converted document, plus `lostElementsCount` and `lostElements` so you can see what did not carry over. For a Factur-X or ZUGFeRD target an XML source comes back as CII XML, and only a hybrid PDF source comes back as a PDF. A PDF answer carries a **PDF Note** that says what the PDF is ([the convert reference](https://docs.beliq.eu/api-reference/convert/#a-pdf-sent-for-a-zugferd-or-factur-x-target) has the detail).
+- **Convert Invoice** returns a Zapier **File** with the converted document, plus `lostElementsCount` and `lostElements`, the source elements the engine recorded as having no target equivalent. A loss the engine does not detect is not listed. Each `lostElements` entry is a line item with the `path`, `value`, `reason`, `severity` and `acceptableLoss` that [the LostElement schema](https://docs.beliq.eu/api-reference/convert/#lostelement-schema) describes. When the list would pass the API's 6 KB header cap, it holds one entry with `truncated` set to true instead of the losses, and `lostElementsCount` stays the exact count. For a Factur-X or ZUGFeRD target an XML source comes back as CII XML, and only a hybrid PDF source comes back as a PDF. A PDF answer carries a **PDF Note** that says what the PDF is ([the convert reference](https://docs.beliq.eu/api-reference/convert/#a-pdf-sent-for-a-zugferd-or-factur-x-target) has the detail).
 
 A returned **File** is ready to attach or upload in a downstream Gmail, Drive, or Slack step.
 
 ## Document input
 
-**Validate**, **Parse**, and **Convert** take a document either as pasted **Document Text** (the invoice XML) or as a **Document File** mapped from a previous step. beliq detects CII vs UBL from the content, or you can set the format explicitly.
+**Validate**, **Parse**, and **Convert** take a document either as pasted **Document Text** (the invoice XML) or as a **Document File** mapped from a previous step. beliq detects the format from the content, or you can set it explicitly.
 
 ## Public format coverage
 
-The dropdowns carry every format the API accepts for each operation.
+The dropdowns carry the formats the API accepts for each operation, less any
+that `@beliq/sdk` leaves out; the SDK's [`src/constants.ts`](https://github.com/beliq-eu/beliq-sdk-node/blob/v0.6.0/src/constants.ts) states the
+reason for each of those.
 [`GET /v1/rulesets`](https://docs.beliq.eu/api-reference/rulesets/) lists each
 format beliq offers, with no API key, together with its rule pack, version and
 badge. The badge says how deep the check of that format goes, and
