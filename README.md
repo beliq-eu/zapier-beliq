@@ -30,7 +30,8 @@ A returned **File** is ready to attach or upload in a downstream Gmail, Drive, o
 
 ## Public format coverage
 
-The dropdowns carry every format the API accepts for each operation.
+The dropdowns carry the formats the API accepts for each operation, less any
+that `@beliq/sdk` leaves out, and the SDK states its reason for each of those.
 [`GET /v1/rulesets`](https://docs.beliq.eu/api-reference/rulesets/) lists each
 format beliq offers, with no API key, together with its rule pack, version and
 badge. The badge says how deep the check of that format goes, and
