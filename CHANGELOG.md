@@ -15,8 +15,10 @@ integration can carry, and it contains everything built before registration.
   with `truncated` set to true instead, and `lostElementsCount` stays the exact
   count.
 - Validate Invoice's Format dropdown offers FatturaPA (Italy), Facturae
-  (Spain), e-SLOG (Slovenia) and KSeF FA(3) (Poland) too. `GET /v1/rulesets`
-  states how deep the check of each goes.
+  (Spain) and e-SLOG (Slovenia) too, and Poland's KSeF FA(3) format: KSeF
+  FA(3) format-ready. `GET /v1/rulesets` states how deep the check of each
+  goes. Beliq does not operate KSeF submission: transmission via your chosen
+  intermediary.
 - Moves to `@beliq/sdk` 0.6.0.
 
 ## 1.0.3 - 2026-10-26
