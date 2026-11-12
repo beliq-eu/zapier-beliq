@@ -5,7 +5,7 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
-## Unreleased
+## 1.0.4 - 2026-11-12
 
 - Convert Invoice has the input **Accept Loss of the French Cadre de
   Facturation Code**, off by default. beliq's conversion from CII to UBL does
