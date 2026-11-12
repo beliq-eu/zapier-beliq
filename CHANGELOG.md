@@ -7,6 +7,16 @@ integration can carry, and it contains everything built before registration.
 
 ## Unreleased
 
+- Convert Invoice has the input **Accept Loss of the French Cadre de
+  Facturation Code**, off by default. beliq's conversion from CII to UBL does
+  not carry the French cadre de facturation code (BT-23) across, so beliq
+  refuses to convert a CII invoice that carries one into UBL or XRechnung UBL.
+  With the input set to true, the code is dropped and listed in Lost Elements
+  (https://docs.beliq.eu/api-reference/convert/), and the result fails the
+  French CTC rule BR-FR-08, which requires the code in a UBL invoice. Before,
+  such an invoice could not be converted into those targets from Zapier. The
+  input lifts no other refusal. When the API refuses a lossy conversion and the
+  input is not set, the error now names the input.
 - Convert Invoice returns each `lostElements` entry as the object the API
   sends, with `path`, `value`, `reason`, `severity` and `acceptableLoss`
   (https://docs.beliq.eu/api-reference/convert/#lostelement-schema), which

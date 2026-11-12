@@ -1,6 +1,7 @@
 import type { Bundle, PlainInputField, ZObject } from 'zapier-platform-core';
 import type { GenerateInput, Invoice, GenerateProfile, ValidationResult } from '@beliq/sdk';
 import { asJsonObject, createClient, mapError, type BeliqAuthData } from '../lib/client';
+import { bool } from '../lib/input';
 import { stashDocument } from '../lib/io';
 import {
   GENERATE_STANDARD_CHOICES,
@@ -116,13 +117,6 @@ const inputFields: PlainInputField[] = [
       'Validate the generated document before returning it, and fail rather than return an invalid one. Off, nothing checks it: Summary says NOT VALIDATED and that verified is false.',
   },
 ];
-
-function bool(value: unknown): boolean | undefined {
-  if (typeof value === 'boolean') return value;
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
 
 // What a PDF's verdict is about, by the two kinds the API sends in pdfKind.
 const PDF_VERDICT_SUBJECT = new Map([

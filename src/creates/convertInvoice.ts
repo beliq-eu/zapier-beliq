@@ -1,7 +1,9 @@
 import type { Bundle, PlainInputField, ZObject } from 'zapier-platform-core';
 import type { ConvertOptions, ConvertTargetFormat, FacturxProfile } from '@beliq/sdk';
 import { CONVERT_PDF_LINE } from '@beliq/sdk/helpers';
+import { BeliqApiError, type ApiErrorCode } from '@beliq/sdk';
 import { createClient, mapError, type BeliqAuthData } from '../lib/client';
+import { bool } from '../lib/input';
 import { resolveDocument, stashDocument } from '../lib/io';
 import { CONVERT_TARGET_CHOICES, PROFILE_CHOICES } from '../lib/options';
 import { convertSample } from '../lib/samples';
@@ -37,7 +39,19 @@ const inputFields: PlainInputField[] = [
     choices: PROFILE_CHOICES,
     helpText: 'The target profile. Applies only when Target Format is Factur-X or ZUGFeRD.',
   },
+  {
+    key: 'dropFranceCtcOverlay',
+    label: 'Accept Loss of the French Cadre de Facturation Code',
+    type: 'boolean',
+    default: 'false',
+    helpText:
+      "beliq's conversion from CII to UBL does not carry the French cadre de facturation code (BT-23) across, so beliq refuses to convert a CII invoice that carries one into UBL or XRechnung UBL unless you set this to true. With true, the code is dropped and listed in Lost Elements, and the result fails the French CTC rule BR-FR-08, which requires the code in a UBL invoice. It lifts no other refusal: a Factur-X EXTENDED source cannot go to UBL, and no CII source can go to Peppol BIS.",
+  },
 ];
+
+const LOSSY_REFUSAL: ApiErrorCode = 'CONVERSION_LOSSY_FAILCLOSED';
+const FRANCE_OVERLAY_HINT =
+  'If the loss named above is the French cadre de facturation code (BT-23), set Accept Loss of the French Cadre de Facturation Code to true to convert without it.';
 
 // A Factur-X or ZUGFeRD target returns a PDF for a hybrid PDF source and CII
 // XML for an XML one, so the answer's content type names the file, not the
@@ -57,13 +71,25 @@ const perform = async (z: ZObject, bundle: Bundle) => {
   if (typeof input.profile === 'string' && input.profile !== '') {
     options.targetProfile = input.profile as FacturxProfile;
   }
+  if (bool(input.dropFranceCtcOverlay) === true) {
+    options.dropFranceCtcOverlay = true;
+  }
 
   const client = createClient(bundle.authData as BeliqAuthData);
   let result;
   try {
     result = await client.convert(document, options);
   } catch (error) {
-    throw mapError(error);
+    const mapped = mapError(error);
+    // The API's own message names the request option, which a Zapier user cannot set.
+    if (
+      error instanceof BeliqApiError &&
+      error.code === LOSSY_REFUSAL &&
+      !options.dropFranceCtcOverlay
+    ) {
+      mapped.message = `${mapped.message} ${FRANCE_OVERLAY_HINT}`;
+    }
+    throw mapped;
   }
 
   const contentType = result.contentType.split(';')[0].trim();
