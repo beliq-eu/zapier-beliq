@@ -80,6 +80,7 @@ export const VALIDATION_FIELDS = {
   rulesetChannel: { label: 'Ruleset Channel' },
   rulesetFellBack: { label: 'Ruleset Fell Back', type: 'boolean' },
   rulesetSunsetsOn: { label: 'Ruleset Sunsets On' },
+  rulesetSupersededOn: { label: 'Ruleset Superseded On' },
   pdfInput: { label: 'PDF Input', object: PDF_INPUT_FIELDS },
   sha256: { label: 'Document SHA-256' },
   rulesetSha256: { label: 'Ruleset SHA-256' },

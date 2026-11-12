@@ -31,7 +31,7 @@ A returned **File** is ready to attach or upload in a downstream Gmail, Drive, o
 ## Public format coverage
 
 The dropdowns carry the formats the API accepts for each operation, less any
-that `@beliq/sdk` leaves out; the SDK's [`src/constants.ts`](https://github.com/beliq-eu/beliq-sdk-node/blob/v0.6.0/src/constants.ts) states the
+that `@beliq/sdk` leaves out; the SDK's [`src/constants.ts`](https://github.com/beliq-eu/beliq-sdk-node/blob/v0.7.3/src/constants.ts) states the
 reason for each of those.
 [`GET /v1/rulesets`](https://docs.beliq.eu/api-reference/rulesets/) lists each
 format beliq offers, with no API key, together with its rule pack, version and

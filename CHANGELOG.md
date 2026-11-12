@@ -19,7 +19,19 @@ integration can carry, and it contains everything built before registration.
   FA(3) format-ready. `GET /v1/rulesets` states how deep the check of each
   goes. Beliq does not operate KSeF submission: transmission via your chosen
   intermediary.
-- Moves to `@beliq/sdk` 0.6.0.
+- Moves to `@beliq/sdk` 0.7.3. Validate Invoice declares the new output field
+  **Ruleset Superseded On**, as it lists every key of the SDK's result: the
+  date the successor of a ruleset that ran became mandatory, beside a
+  `RULESET_SUPERSEDED` warning. Validate Invoice sends no ruleset pin or as-of
+  date, so from Zapier it comes only when the outgoing version of a format in
+  its notice period ran on the default path.
+- No retry starts later than 20 seconds after the first attempt. A retry that
+  would start later ends the call with beliq's own error instead, such as
+  `DATABASE_UNAVAILABLE`, `RATE_LIMITED` or `ENGINE_UNAVAILABLE`, where the
+  answer's `Retry-After` does not fit in what is left. Zapier ends every action
+  at 30 seconds, and the SDK's own budget of 15 minutes would always be cut
+  there with Zapier's "did not respond in-time". An attempt that is still
+  running at 30 seconds meets that cut.
 
 ## 1.0.3 - 2026-10-26
 
