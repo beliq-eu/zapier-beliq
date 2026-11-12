@@ -1,5 +1,17 @@
 import { Beliq, BeliqApiError } from '@beliq/sdk';
 
+/**
+ * Zapier ends every action's perform at 30 seconds
+ * (https://docs.zapier.com/platform/build/troubleshoot-action-timeouts). The
+ * SDK's default budget of 15 minutes would always be cut there, with Zapier's
+ * "did not respond in-time" in place of beliq's own error. With this budget no
+ * retry starts later than 20 seconds after the SDK call's first attempt. The
+ * budget bounds when an attempt starts, not how long it runs, and the perform's
+ * file download before the call and file stash after it count toward Zapier's
+ * 30 seconds too: an attempt still running then meets Zapier's cut.
+ */
+export const RETRY_BUDGET_MS = 20_000;
+
 export interface BeliqAuthData {
   apiKey?: string;
 }
@@ -14,6 +26,7 @@ export function createClient(authData: BeliqAuthData, fetchImpl?: typeof fetch):
   return new Beliq({
     apiKey: authData?.apiKey ?? '',
     fetch: fetchImpl,
+    retryBudgetMs: RETRY_BUDGET_MS,
   });
 }
 

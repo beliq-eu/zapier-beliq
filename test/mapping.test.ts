@@ -122,6 +122,7 @@ import generateInvoice from '../src/creates/generateInvoice';
 import validateInvoice from '../src/creates/validateInvoice';
 import parseInvoice from '../src/creates/parseInvoice';
 import convertInvoice from '../src/creates/convertInvoice';
+import { RETRY_BUDGET_MS } from '../src/lib/client';
 import { CONVERT_PDF_LINE, DEPTH_NOT_STATED } from '@beliq/sdk/helpers';
 import { VALIDATE_FORMAT_CHOICES, resolveGenerateTarget } from '../src/lib/options';
 import {
@@ -784,5 +785,44 @@ describe('generate_invoice profile gating', () => {
     });
     expect(forcing).toEqual(['NLCIUS always returns XML']);
     for (const sentence of forcing) expect(output.helpText).toContain(sentence);
+  });
+});
+
+describe('retry budget', () => {
+  // Zapier ends a perform at 30 seconds, so no retry may start past RETRY_BUDGET_MS.
+  function sequenceFetch(responses: FetchResponse[], recorder: RecordedRequest[]): typeof fetch {
+    let call = 0;
+    return (async (url: string | URL, init?: RequestInit) => {
+      const next = responses[Math.min(call++, responses.length - 1)];
+      return recordingFetch(next, recorder)(url, init);
+    }) as unknown as typeof fetch;
+  }
+  const outage = (retryAfter: string): FetchResponse => ({
+    status: 503,
+    headers: { 'Content-Type': 'application/json', 'Retry-After': retryAfter },
+    body: JSON.stringify({
+      success: false,
+      error: { code: 'DATABASE_UNAVAILABLE', message: 'The database cannot serve this request.' },
+    }),
+  });
+  const bundle = { authData: AUTH, inputData: { documentText: '<Invoice/>', format: 'ubl' } };
+
+  it('ends at once with beliq\'s error when the Retry-After would pass the budget', async () => {
+    const recorder: RecordedRequest[] = [];
+    const fetchImpl = sequenceFetch([outage(String(RETRY_BUDGET_MS / 1000 + 5)), jsonAnswer(validateRecorded)], recorder);
+    const started = Date.now();
+    await expect(withFetch(fetchImpl, () => runPerform(validateInvoice, makeZ([]), bundle))).rejects.toThrow(
+      /DATABASE_UNAVAILABLE/,
+    );
+    expect(recorder).toHaveLength(1);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it('still retries an outage whose Retry-After fits the budget', async () => {
+    const recorder: RecordedRequest[] = [];
+    const fetchImpl = sequenceFetch([outage('0'), jsonAnswer(validateRecorded)], recorder);
+    const result = await withFetch(fetchImpl, () => runPerform(validateInvoice, makeZ([]), bundle));
+    expect(recorder).toHaveLength(2);
+    expect(result.valid).toBe(validateRecorded.valid);
   });
 });
