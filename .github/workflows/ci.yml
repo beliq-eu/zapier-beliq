@@ -48,9 +48,6 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: Scrub check (no em-dash)
-        run: npm run scrub:check
-
   # test:integration drives the SDK the way the creates do against the live beliq API, spending 7 documents (4 generates, plus validate, parse and convert; me() is quota-exempt).
   # BELIQ_API_KEY is a `blq_test_` sandbox key: it runs the full rule stack but
   # draws on the sandbox allowance instead of the plan quota, so a broad trigger

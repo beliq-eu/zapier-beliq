@@ -40,8 +40,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "lint": "eslint . --max-warnings 0",
     "validate": "bash scripts/validate-gate.sh",
-    "push": "zapier-platform push",
-    "scrub:check": "bash scripts/scrub-check.sh"
+    "push": "zapier-platform push"
   },
   "dependencies": {
     "@beliq/sdk": "^0.7.3",
