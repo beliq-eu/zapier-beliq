@@ -5,6 +5,23 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
+## Unreleased
+
+- Convert Invoice no longer has the input **Accept Loss of the French Cadre
+  de Facturation Code**. beliq converts a CII invoice whose business process
+  type (BT-23) holds a French cadre de facturation code into UBL or XRechnung
+  UBL, with the code in `cbc:ProfileID`, where the converted document passes
+  the target's rules. A Factur-X EXTENDED or EXTENDED-CTC-FR source is still
+  refused. A converted UBL invoice that does not carry the source's BT-23 is
+  refused with `CONVERSION_LOSSY_FAILCLOSED`
+  (https://docs.beliq.eu/api-reference/convert/). A Zap still on 1.0.4 keeps
+  working: the API accepts the input's option, and it has no effect.
+- 1.0.4 said that with the input the code is dropped, and that the result
+  therefore fails the French CTC rule BR-FR-08. Neither held: the conversion
+  carried the code into `cbc:ProfileID`, where BR-FR-08 tests it, and listed
+  it in Lost Elements all the same. A lossy refusal now shows the API's own
+  message and code, with no hint about the input.
+
 ## 1.0.4 - 2026-11-12
 
 - Convert Invoice has the input **Accept Loss of the French Cadre de

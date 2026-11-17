@@ -625,49 +625,8 @@ describe('convert_invoice mapping', () => {
     expect(result.lostElements).toEqual(LOST_ELEMENTS_EXAMPLE);
   });
 
-  // The engine's gate applies to a CII source going to UBL syntax: UBL, and XRechnung from a non-XRechnung source.
-  it.each([
-    [true, 'ubl'],
-    ['true', 'ubl'],
-    [true, 'xrechnung'],
-  ])('accepts the loss of a French cadre code when asked (%s, %s)', async (value, targetFormat) => {
-    const recorder: RecordedRequest[] = [];
-    const fetchImpl = recordingFetch(
-      { body: new TextEncoder().encode('<Invoice>ubl</Invoice>'), headers: { 'content-type': 'application/xml' } },
-      recorder,
-    );
-    const bundle = {
-      authData: AUTH,
-      inputData: { documentText: '<Invoice>cii</Invoice>', targetFormat, dropFranceCtcOverlay: value },
-    };
-    await withFetch(fetchImpl, () => runPerform(convertInvoice, makeZ([]), bundle));
-    expect(recorder[0].url).toBe(
-      `https://api.beliq.eu/v1/convert?targetFormat=${targetFormat}&dropFranceCtcOverlay=true`,
-    );
-  });
-
-  it('names the Zapier input when the API refuses a lossy conversion', async () => {
-    const fetchImpl = recordingFetch(
-      {
-        status: 422,
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          success: false,
-          error: {
-            code: 'CONVERSION_LOSSY_FAILCLOSED',
-            message: "Source CII carries French cadre de facturation code 'B8' (BT-23).",
-          },
-        }),
-      },
-      [],
-    );
-    const bundle = { authData: AUTH, inputData: { documentText: '<Invoice>cii</Invoice>', targetFormat: 'ubl' } };
-    await expect(withFetch(fetchImpl, () => runPerform(convertInvoice, makeZ([]), bundle))).rejects.toThrow(
-      /\(CONVERSION_LOSSY_FAILCLOSED\) If the loss named above is the French cadre de facturation code \(BT-23\), set Accept Loss of the French Cadre de Facturation Code to true/,
-    );
-  });
-
-  it.each([false, 'false', undefined])('sends no overlay option unless asked (%s)', async (value) => {
+  // A Zap set up on 1.0.4 can still hold a value for the input 1.0.5 removed.
+  it.each([true, 'true'])('sends no French overlay option from a Zap that still holds one (%s)', async (value) => {
     const recorder: RecordedRequest[] = [];
     const fetchImpl = recordingFetch(
       { body: new TextEncoder().encode('<Invoice>ubl</Invoice>'), headers: { 'content-type': 'application/xml' } },
@@ -679,6 +638,23 @@ describe('convert_invoice mapping', () => {
     };
     await withFetch(fetchImpl, () => runPerform(convertInvoice, makeZ([]), bundle));
     expect(recorder[0].url).toBe('https://api.beliq.eu/v1/convert?targetFormat=ubl');
+  });
+
+  it('passes a lossy refusal on with the API message and code only', async () => {
+    const message =
+      "The source's business process type (BT-23) is 'S1', and the converted UBL carries no cbc:ProfileID, so it is not returned.";
+    const fetchImpl = recordingFetch(
+      {
+        status: 422,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ success: false, error: { code: 'CONVERSION_LOSSY_FAILCLOSED', message } }),
+      },
+      [],
+    );
+    const bundle = { authData: AUTH, inputData: { documentText: '<Invoice>cii</Invoice>', targetFormat: 'ubl' } };
+    const error = await withFetch(fetchImpl, () => runPerform(convertInvoice, makeZ([]), bundle)).catch((e: Error) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe(`${message} (CONVERSION_LOSSY_FAILCLOSED)`);
   });
 
   it('passes on the one truncation entry of a list past the header cap, with the exact count', async () => {
