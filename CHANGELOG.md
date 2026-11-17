@@ -9,8 +9,9 @@ integration can carry, and it contains everything built before registration.
 
 - Convert Invoice no longer has the input **Accept Loss of the French Cadre
   de Facturation Code**. beliq converts a CII invoice whose business process
-  type (BT-23) holds a French cadre de facturation code into UBL or XRechnung
-  UBL, with the code in `cbc:ProfileID`, where the converted document passes
+  type (BT-23) holds a French cadre de facturation code into UBL, and into
+  XRechnung from a non-XRechnung source, with the code in `cbc:ProfileID`, where
+  the converted document passes
   the target's rules. A Factur-X EXTENDED or EXTENDED-CTC-FR source is still
   refused. A converted UBL invoice that does not carry the source's BT-23 is
   refused with `CONVERSION_LOSSY_FAILCLOSED`

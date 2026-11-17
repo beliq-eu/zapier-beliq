@@ -626,7 +626,7 @@ describe('convert_invoice mapping', () => {
   });
 
   // A Zap set up on 1.0.4 can still hold a value for the input 1.0.5 removed.
-  it.each([true, 'true'])('sends no French overlay option from a Zap that still holds one (%s)', async (value) => {
+  it.each([true, 'true'])('sends no French overlay option from a Zap that still holds one (%j)', async (value) => {
     const recorder: RecordedRequest[] = [];
     const fetchImpl = recordingFetch(
       { body: new TextEncoder().encode('<Invoice>ubl</Invoice>'), headers: { 'content-type': 'application/xml' } },
