@@ -5,7 +5,7 @@ to be contiguous: a push of `X.Y.Z` is rejected unless its immediate predecessor
 already exists on the platform. `1.0.0` is therefore the first number this
 integration can carry, and it contains everything built before registration.
 
-## Unreleased
+## 1.0.5 - 2026-11-18
 
 - Convert Invoice no longer has the input **Accept Loss of the French Cadre
   de Facturation Code**. beliq converts a CII invoice whose business process
