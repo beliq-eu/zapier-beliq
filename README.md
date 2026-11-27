@@ -1,6 +1,6 @@
 # zapier-beliq
 
-Validate, generate, convert and parse EU e-invoices with the [beliq](https://beliq.eu) API from [Zapier](https://zapier.com). Every verdict carries the check depth the API states for it, or says that none was stated.
+Generate, validate, parse and convert EU e-invoices with the [beliq](https://beliq.eu) API from [Zapier](https://zapier.com). Its verdicts carry the check depth the API states for them, or say that none was stated.
 
 Four actions:
 
@@ -26,7 +26,7 @@ A returned **File** is ready to attach or upload in a downstream Gmail, Drive, o
 
 ## Document input
 
-**Validate**, **Parse**, and **Convert** take a document either as pasted **Document Text** (the invoice XML) or as a **Document File** mapped from a previous step. beliq detects the format from the content, or you can set it explicitly.
+**Validate**, **Parse** and **Convert** take a document either as pasted **Document Text** (the invoice XML) or as a **Document File** mapped from a previous step. beliq detects the format from the content, or you can set it explicitly.
 
 ## Public format coverage
 

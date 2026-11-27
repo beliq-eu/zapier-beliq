@@ -2,7 +2,7 @@
   "name": "zapier-beliq",
   "version": "1.0.5",
   "private": true,
-  "description": "Validate, generate, convert and parse EU e-invoices (XRechnung, ZUGFeRD, Factur-X, Peppol BIS) with the beliq API from Zapier.",
+  "description": "Generate, validate, parse and convert EU e-invoices (XRechnung, ZUGFeRD, Factur-X, Peppol BIS) with the beliq API from Zapier.",
   "keywords": [
     "beliq",
     "e-invoice",
